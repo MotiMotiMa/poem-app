@@ -21,3 +21,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Supabase/OpenAI のシークレットキー
+.env
+
+# シークレットが含まれるファイル
+chatgpt.txt

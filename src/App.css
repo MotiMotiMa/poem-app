@@ -1,3 +1,35 @@
+body {
+  margin: 0;
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  background: linear-gradient(135deg, #f9d423, #ff4e50);
+  background-attachment: fixed;
+  color: #2d3436;
+}
+
+h1, h2 {
+  text-shadow: 2px 2px #ffffffaa;
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+}
+
+select {
+  border-radius: 8px;
+  padding: 0.3rem 0.5rem;
+  font-size: 1rem;
+}
+
 .App {
   text-align: center;
 }
@@ -36,3 +68,4 @@
     transform: rotate(360deg);
   }
 }
+
