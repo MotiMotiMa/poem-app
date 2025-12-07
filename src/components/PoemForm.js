@@ -4,22 +4,23 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
   const [title, setTitle] = useState("");
   const [poemText, setPoemText] = useState("");
   const [emotion, setEmotion] = useState("cool");
+  const [tags, setTags] = useState("");
 
-  // 🌙 ダークモード判定
   const isDark =
     window.matchMedia &&
     window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-  // 編集 or 新規
   useEffect(() => {
     if (editingPoem) {
       setTitle(editingPoem.title || "");
       setPoemText(editingPoem.poem);
       setEmotion(editingPoem.emotion || "cool");
+      setTags((editingPoem.tags || []).join(", "));
     } else {
       setTitle("");
       setPoemText("");
       setEmotion("cool");
+      setTags("");
     }
   }, [editingPoem]);
 
@@ -27,14 +28,18 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
     e.preventDefault();
     if (!poemText.trim()) return;
 
+    const saveTags = tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
     const poemData = editingPoem
-      ? { ...editingPoem, title, poem: poemText, emotion }
-      : { title, poem: poemText, emotion };
+      ? { ...editingPoem, title, poem: poemText, emotion, tags: saveTags }
+      : { title, poem: poemText, emotion, tags: saveTags };
 
     onSave(poemData, editingPoem);
   };
 
-  // 🎨 カラー（ライト/ダーク）
   const colors = {
     card: isDark ? "#2e2e2e" : "#ffffff",
     text: isDark ? "#f1f2f6" : "#2d3436",
@@ -85,8 +90,8 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
         }}
       />
 
-      {/* 🔥 AIからのタイトル候補一覧（新規投稿時のみ） */}
-      {!editingPoem && titleCandidates && titleCandidates.length > 0 && (
+      {/* AIタイトル候補 */}
+      {!editingPoem && titleCandidates?.length > 0 && (
         <div style={{ marginBottom: "1rem" }}>
           <label
             style={{
@@ -99,13 +104,7 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
             AIタイトル候補
           </label>
 
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "0.5rem",
-            }}
-          >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
             {titleCandidates.map((candidate, index) => (
               <button
                 key={index}
@@ -131,7 +130,6 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
       <label style={{ display: "block", fontWeight: "600", color: colors.label }}>
         詩の本文
       </label>
-
       <textarea
         rows={6}
         placeholder="詩を入力してください…"
@@ -149,9 +147,9 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
         }}
       />
 
-      {/* emotion（手動修正も可） */}
+      {/* emotion */}
       <label style={{ display: "block", fontWeight: "600", color: colors.label }}>
-        感情テーマ（AIが自動生成します）
+        感情テーマ
       </label>
       <select
         value={emotion}
@@ -172,7 +170,26 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
         <option value="light">light（希望・光）</option>
       </select>
 
-      {/* ボタン */}
+      {/* タグ */}
+      <label style={{ display: "block", fontWeight: "600", color: colors.label }}>
+        タグ（カンマ区切り）
+      </label>
+      <input
+        type="text"
+        placeholder="例：やす, 闇, 恋, エリカ"
+        value={tags}
+        onChange={(e) => setTags(e.target.value)}
+        style={{
+          width: "100%",
+          padding: "0.8rem",
+          borderRadius: "8px",
+          border: `1px solid ${colors.inputBorder}`,
+          background: colors.inputBg,
+          color: colors.text,
+          marginBottom: "1.2rem",
+        }}
+      />
+
       <button
         type="submit"
         style={{
