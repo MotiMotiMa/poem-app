@@ -30,18 +30,19 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
 
-      {/* ダーク/ライト切替 */}
       <div style={{ position: "fixed", top: 10, right: 10, zIndex: 1000 }}>
         <IconButton onClick={() => setMode(mode === "light" ? "dark" : "light")}>
           {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
         </IconButton>
       </div>
+      <div style={{ textAlign: "center", marginTop: "1rem" }}>
+        <h1>🌈 詩作成システム</h1>
+      </div>
 
-      {/* ルーティング（Router は書かない） */}
       <Routes>
-        <Route path="/" element={<PoemListPage />} />
-        <Route path="/edit/:id" element={<EditPage />} />
-        <Route path="/poem/:id" element={<PoemViewPage />} />
+        <Route path="/" element={<PoemListPage theme={mode} />} />
+        <Route path="/edit/:id" element={<EditPage theme={mode} />} />
+        <Route path="/poem/:id" element={<PoemViewPage theme={mode} />} />
       </Routes>
     </ThemeProvider>
   );

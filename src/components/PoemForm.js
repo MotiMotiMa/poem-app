@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 
 export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
+  console.log("PoemForm SUBMIT READY");
   const [title, setTitle] = useState("");
   const [poemText, setPoemText] = useState("");
   const [emotion, setEmotion] = useState("cool");
@@ -26,6 +27,7 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log("SUBMIT CLICKED:", poemText);
     if (!poemText.trim()) return;
 
     const saveTags = tags
@@ -176,7 +178,7 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
       </label>
       <input
         type="text"
-        placeholder="例：やす, 闇, 恋, エリカ"
+        placeholder="例：光, 闇, 恋"
         value={tags}
         onChange={(e) => setTags(e.target.value)}
         style={{

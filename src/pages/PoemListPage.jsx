@@ -23,6 +23,7 @@ export default function PoemListPage({ theme }) {
   const [titleCandidates, setTitleCandidates] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
+  console.log(selectedTag);
 
   // -------------------------
   //   認証セッション
@@ -74,9 +75,17 @@ export default function PoemListPage({ theme }) {
       needsEvaluation = shouldReEvaluate(prevPoem.poem, poemData.poem);
     }
 
-    // AI評価処理
-    if (needsEvaluation) {
-      const result = await evaluatePoem(poemData.title, poemData.poem);
+    // ▼ AI評価が必要な場合
+if (needsEvaluation) {
+  console.log("=== Evaluate Start ===");
+  console.log("poemData.title:", poemData.title);
+  console.log("poemData.poem:", JSON.stringify(poemData.poem));
+
+  if (!poemData.poem || poemData.poem.trim() === "") {
+    console.error("ERROR: poemData.poem が空です！");
+  }
+
+  const result = await evaluatePoem(poemData.title, poemData.poem);
 
       saveData.score = result.score;
       saveData.comment = result.comment;
@@ -176,7 +185,7 @@ export default function PoemListPage({ theme }) {
     }}
     >
 
-      <h1 style={{ textAlign: "center" }}>🌈 Poem App + Tags + Search</h1>
+      <h1 style={{ textAlign: "center" }}>🌈 詩作成システム</h1>
 
       <AuthButtons
         user={user}
@@ -242,7 +251,10 @@ export default function PoemListPage({ theme }) {
               <PoemCard
                 key={p.id}
                 poem={p}
-                onEdit={() => navigate(`/edit/${p.id}`)}
+                onEdit={() => {
+                  setEditingPoem(p);
+                  navigate(`/edit/${p.id}`);
+                }}
                 onDelete={handleDelete}
               />
             ))}

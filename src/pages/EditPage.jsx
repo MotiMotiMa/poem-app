@@ -19,7 +19,7 @@ export default function EditPage() {
 
   const { savePoem } = useSavePoem({
     refresh,
-    setTitleCandidates,
+    setTitleCandidates: () => {},  // 
     setEditingPoem: () => {},
   });
 

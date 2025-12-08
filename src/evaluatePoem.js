@@ -1,6 +1,8 @@
 // src/evaluatePoem.js
 export async function evaluatePoem(title, poemText) {
+  console.log("FUNCTION URL:", functionUrl);
   const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+  console.log("SUPABASE_URL:", process.env.REACT_APP_SUPABASE_URL);
 
   if (!supabaseUrl) {
     console.error("エラー: REACT_APP_SUPABASE_URL が設定されていません。");
@@ -25,8 +27,8 @@ export async function evaluatePoem(title, poemText) {
         Authorization: `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify({
-        title: title || "",
-        poem: poemText,
+        title,
+        poemText,   // ← これが正しい
       }),
     });
 
