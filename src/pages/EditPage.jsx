@@ -1,3 +1,5 @@
+// src/pages/EditPage.jsx
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import supabase from "../supabaseClient";
@@ -5,21 +7,18 @@ import PoemForm from "../components/PoemForm";
 import useSavePoem from "../hooks/useSavePoem";
 import usePoems from "../hooks/usePoems";
 
-export default function EditPage() {
+export default function EditPage({ setLoading }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [poem, setPoem] = useState(null);
+  const [pageLoading, setPageLoading] = useState(true); // ← ページ専用のローディング
 
-  const {
-    refresh,
-    titleCandidates,
-    setTitleCandidates,
-  } = usePoems();
+  const { refresh } = usePoems();
 
   const { savePoem } = useSavePoem({
     refresh,
-    setTitleCandidates: () => {},  // 
+    setTitleCandidates: () => {},
     setEditingPoem: () => {},
   });
 
@@ -36,8 +35,13 @@ export default function EditPage() {
     link: isDark ? "#81c7ff" : "#2980b9",
   };
 
+  // --------------------------
+  // データ読み込み（ページ自体のローディング）
+  // --------------------------
   useEffect(() => {
     async function load() {
+      setPageLoading(true);
+
       const { data } = await supabase
         .from("poems")
         .select("*")
@@ -45,15 +49,66 @@ export default function EditPage() {
         .single();
 
       setPoem(data);
+      setPageLoading(false);
     }
     load();
   }, [id]);
 
+  // --------------------------
+  // 保存処理（App.js の全画面ぐるぐるを使用）
+  // --------------------------
   const handleSave = async (poemData) => {
+    setLoading(true); // ← 全画面ぐるぐる起動
+
     await savePoem(poemData, poem);
+
+    setLoading(false); // ← ぐるぐる解除
     navigate("/");
   };
 
+  // --------------------------
+  // ページロード中（ページ用ぐるぐる）
+  // --------------------------
+  if (pageLoading) {
+    return (
+      <div
+        style={{
+          width: "100vw",
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          background: colors.bg,
+          color: colors.text,
+          fontFamily: "sans-serif",
+        }}
+      >
+        <div
+          style={{
+            width: "60px",
+            height: "60px",
+            border: "6px solid #888",
+            borderTop: "6px solid #3498db",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+          }}
+        />
+
+        <style>
+          {`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}
+        </style>
+      </div>
+    );
+  }
+
+  // --------------------------
+  // データなし
+  // --------------------------
   if (!poem) {
     return (
       <div
@@ -64,11 +119,14 @@ export default function EditPage() {
           minHeight: "100vh",
         }}
       >
-        読み込み中…
+        詩が見つかりません。
       </div>
     );
   }
 
+  // --------------------------
+  // 通常画面
+  // --------------------------
   return (
     <div
       style={{
@@ -91,7 +149,7 @@ export default function EditPage() {
         </Link>
       </div>
 
-      {/* カード中央寄せ */}
+      {/* カード中央 */}
       <div
         style={{
           maxWidth: "500px",

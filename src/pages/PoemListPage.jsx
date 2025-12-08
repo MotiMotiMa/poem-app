@@ -1,4 +1,8 @@
-import { useState, useEffect } from "react";
+// ================================================
+// PoemListPage.jsx（レベル9：読書モード＋Appローディング対応）
+// ================================================
+
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../supabaseClient";
 
@@ -6,13 +10,14 @@ import PoemForm from "../components/PoemForm";
 import PoemCard from "../components/PoemCard";
 import AuthButtons from "../components/AuthButtons";
 import SearchBar from "../components/SearchBar";
+import PoemCarousel from "../components/PoemCarousel";
+import FullscreenReader from "../components/FullscreenReader";
 
 import levenshtein from "fast-levenshtein";
 import { evaluatePoem } from "../evaluatePoem";
-import { generatePoemBookPDF } from "../utils/PoemBookPDF";  // ← PDF生成を読み込む
+import { generatePoemBookPDF } from "../utils/PoemBookPDF";
 
-export default function PoemListPage({ theme }) {
-
+export default function PoemListPage({ theme, setLoading }) {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
@@ -23,7 +28,9 @@ export default function PoemListPage({ theme }) {
   const [titleCandidates, setTitleCandidates] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
-  console.log(selectedTag);
+
+  // ★ フルスクリーン読書モード
+  const [readingPoem, setReadingPoem] = useState(null);
 
   // -------------------------
   //   認証セッション
@@ -44,18 +51,18 @@ export default function PoemListPage({ theme }) {
   //   DBから詩を取得
   // -------------------------
   const fetchPoems = async (order = "desc") => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("poems")
       .select(
         "id, title, poem, score, comment, emotion, tags, created_at, status"
       )
       .order("created_at", { ascending: order === "asc" });
 
-    if (!error) setPoems(data || []);
+    setPoems(data || []);
   };
 
   // -------------------------
-  //   再評価の判定（10%変化）
+  //   再評価の判定
   // -------------------------
   function shouldReEvaluate(prevText, newText) {
     const distance = levenshtein.get(prevText, newText);
@@ -64,10 +71,12 @@ export default function PoemListPage({ theme }) {
   }
 
   // -------------------------
-  //   保存処理（AI評価＋タグ保存）
+  //   保存処理（AI評価）
+  //   ★ App.js の「全画面ぐるぐる」を使用
   // -------------------------
   const handleSave = async (poemData, prevPoem = null) => {
-    let status = "新規評価されました";
+    setLoading(true); // ← 全画面ぐるぐる開始
+
     let saveData = { ...poemData };
     let needsEvaluation = !prevPoem;
 
@@ -75,21 +84,13 @@ export default function PoemListPage({ theme }) {
       needsEvaluation = shouldReEvaluate(prevPoem.poem, poemData.poem);
     }
 
-    // ▼ AI評価が必要な場合
-if (needsEvaluation) {
-  console.log("=== Evaluate Start ===");
-  console.log("poemData.title:", poemData.title);
-  console.log("poemData.poem:", JSON.stringify(poemData.poem));
-
-  if (!poemData.poem || poemData.poem.trim() === "") {
-    console.error("ERROR: poemData.poem が空です！");
-  }
-
-  const result = await evaluatePoem(poemData.title, poemData.poem);
+    if (needsEvaluation) {
+      const result = await evaluatePoem(poemData.title, poemData.poem);
 
       saveData.score = result.score;
       saveData.comment = result.comment;
       saveData.emotion = result.emotion;
+      saveData.tags = result.tags || [];
 
       if (!prevPoem && (!poemData.title || poemData.title.trim() === "")) {
         setTitleCandidates(result.titles || []);
@@ -97,95 +98,79 @@ if (needsEvaluation) {
         setTitleCandidates([]);
       }
 
-      status = prevPoem ? "再評価されました" : "新規評価されました";
+      saveData.status = prevPoem ? "再評価されました" : "新規評価されました";
     } else {
       saveData.score = prevPoem.score;
       saveData.comment = prevPoem.comment;
       saveData.emotion = prevPoem.emotion;
-      status = "前のスコアを維持しました";
+      saveData.tags = prevPoem.tags || [];
+      saveData.status = "前のスコアを維持しました";
       setTitleCandidates([]);
     }
 
-    saveData.status = status;
-
     // DB保存
     if (poemData.id) {
-      await supabase
-        .from("poems")
-        .update({
-          title: saveData.title,
-          poem: saveData.poem,
-          score: saveData.score,
-          comment: saveData.comment,
-          emotion: saveData.emotion,
-          tags: saveData.tags || [],
-          status: saveData.status,
-        })
-        .eq("id", poemData.id);
+      await supabase.from("poems").update(saveData).eq("id", poemData.id);
     } else {
-      await supabase.from("poems").insert([
-        {
-          title: saveData.title,
-          poem: saveData.poem,
-          score: saveData.score,
-          comment: saveData.comment,
-          emotion: saveData.emotion,
-          tags: saveData.tags || [],
-          status: saveData.status,
-        },
-      ]);
+      await supabase.from("poems").insert([saveData]);
     }
 
     setEditingPoem(null);
-    fetchPoems(sortOrder);
+    await fetchPoems(sortOrder);
+
+    setLoading(false); // ← ぐるぐる終了
   };
 
   // -------------------------
   //   削除
+  //   ★ 削除時も全画面ぐるぐる
   // -------------------------
   const handleDelete = async (id) => {
+    setLoading(true);
+
     await supabase.from("poems").delete().eq("id", id);
-    fetchPoems(sortOrder);
-  };
+    await fetchPoems(sortOrder);
 
-  const handleSortChange = (e) => {
-    setSortOrder(e.target.value);
-    fetchPoems(e.target.value);
+    setLoading(false);
   };
 
   // -------------------------
-  //   検索（title/poem/comment/emotion/tags）
+  //   表示高速化（useMemo）
   // -------------------------
-  const filteredPoems = poems.filter((p) => {
-    if (!searchText.trim()) return true;
+  const filteredPoems = useMemo(() => {
+    const q = searchText.toLowerCase().trim();
+    const tagQ = selectedTag.toLowerCase().trim();
 
-    const q = searchText.toLowerCase();
-    const tagString = (p.tags || []).join(" ").toLowerCase();
+    return poems.filter((p) => {
+      if (tagQ && !(p.tags || []).includes(selectedTag)) return false;
+      if (!q) return true;
 
-    return (
-      p.title?.toLowerCase().includes(q) ||
-      p.poem?.toLowerCase().includes(q) ||
-      p.comment?.toLowerCase().includes(q) ||
-      p.emotion?.toLowerCase().includes(q) ||
-      tagString.includes(q)
-    );
-  });
+      const tagString = (p.tags || []).join(" ").toLowerCase();
+
+      return (
+        p.title?.toLowerCase().includes(q) ||
+        p.poem?.toLowerCase().includes(q) ||
+        p.comment?.toLowerCase().includes(q) ||
+        p.emotion?.toLowerCase().includes(q) ||
+        tagString.includes(q)
+      );
+    });
+  }, [poems, searchText, selectedTag]);
 
   // -------------------------
-  //   表示
+  //   UI
   // -------------------------
   return (
     <div
-            style={{
-            fontFamily: "sans-serif",
-            padding: "2rem",
-            backgroundColor: theme === "dark" ? "#1e1e1e" : "#fafafa", // ← テーマ対応
-            minHeight: "100vh",
-            color: theme === "dark" ? "#f1f1f1" : "#111" // ← テキスト色
-    }}
+      style={{
+        fontFamily: "sans-serif",
+        padding: "2rem",
+        backgroundColor: theme === "dark" ? "#1e1e1e" : "#fafafa",
+        minHeight: "100vh",
+        color: theme === "dark" ? "#f1f1f1" : "#111",
+      }}
     >
-
-      <h1 style={{ textAlign: "center" }}>🌈 詩作成システム</h1>
+      <h1 style={{ textAlign: "center" }}>🌈 詩作成システム（読書モード）</h1>
 
       <AuthButtons
         user={user}
@@ -200,17 +185,19 @@ if (needsEvaluation) {
 
       {user && (
         <>
+          {/* 投稿フォーム */}
           <PoemForm
             onSave={handleSave}
             editingPoem={editingPoem}
             titleCandidates={titleCandidates}
           />
 
+          {/* 検索 */}
           <SearchBar value={searchText} onChange={setSearchText} />
 
           <h2 style={{ textAlign: "center" }}>📚 保存した詩</h2>
 
-          {/* 🔥 PDF作成ボタン追加ポイントはここ */}
+          {/* PDF */}
           <div style={{ textAlign: "center", marginBottom: "1rem" }}>
             <button
               onClick={() => generatePoemBookPDF(filteredPoems)}
@@ -222,43 +209,32 @@ if (needsEvaluation) {
                 background: "#6c5ce7",
                 color: "#fff",
                 fontWeight: "600",
-                cursor: "pointer",
               }}
             >
               📘 詩集PDFを作る
             </button>
           </div>
 
-          {/* 並び順 */}
-          <div style={{ textAlign: "center", marginBottom: "1rem" }}>
-            <label>並び順: </label>
-            <select value={sortOrder} onChange={handleSortChange}>
-              <option value="desc">新しい順</option>
-              <option value="asc">古い順</option>
-            </select>
-          </div>
-
-          {/* 一覧 */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              gap: "1rem",
+          {/* カルーセル */}
+          <PoemCarousel
+            poems={filteredPoems}
+            onEdit={(p) => {
+              setEditingPoem(p);
+              navigate(`/edit/${p.id}`);
             }}
-          >
-            {filteredPoems.map((p) => (
-              <PoemCard
-                key={p.id}
-                poem={p}
-                onEdit={() => {
-                  setEditingPoem(p);
-                  navigate(`/edit/${p.id}`);
-                }}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
+            onDelete={handleDelete}
+            onTagClick={(tag) => setSelectedTag(tag)}
+            onRead={(p) => setReadingPoem(p)} // 読書モード
+          />
+
+          {/* フルスクリーン読書モード */}
+          {readingPoem && (
+            <FullscreenReader
+              poem={readingPoem}
+              onClose={() => setReadingPoem(null)}
+              onTagClick={(tag) => setSelectedTag(tag)}
+            />
+          )}
         </>
       )}
     </div>

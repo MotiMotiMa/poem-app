@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
-export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
-  console.log("PoemForm SUBMIT READY");
+export default function PoemForm({ onSave, editingPoem, titleCandidates, tagCandidates }) {
+  
   const [title, setTitle] = useState("");
   const [poemText, setPoemText] = useState("");
   const [emotion, setEmotion] = useState("cool");
@@ -27,7 +27,6 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("SUBMIT CLICKED:", poemText);
     if (!poemText.trim()) return;
 
     const saveTags = tags
@@ -40,6 +39,13 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
       : { title, poem: poemText, emotion, tags: saveTags };
 
     onSave(poemData, editingPoem);
+  };
+
+  const addTag = (tag) => {
+    const currentTags = tags.split(",").map((t) => t.trim()).filter((t) => t);
+    if (!currentTags.includes(tag)) {
+      setTags([...currentTags, tag].join(", "));
+    }
   };
 
   const colors = {
@@ -191,6 +197,43 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
           marginBottom: "1.2rem",
         }}
       />
+
+      {/* AIタグ候補 */}
+      {!editingPoem && tagCandidates?.length > 0 && (
+        <div style={{ marginBottom: "1rem" }}>
+          <label
+            style={{
+              display: "block",
+              fontWeight: "600",
+              color: colors.label,
+              marginBottom: "0.3rem",
+            }}
+          >
+            AIタグ候補
+          </label>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            {tagCandidates.map((tag, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => addTag(tag)}
+                style={{
+                  padding: "0.4rem 0.7rem",
+                  borderRadius: "6px",
+                  background: colors.candidateBg,
+                  border: "none",
+                  color: colors.text,
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
+                }}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <button
         type="submit"

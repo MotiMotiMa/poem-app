@@ -1,126 +1,350 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+// ===============================================
+// PoemCard.jsx（レベル7：カード裏返し・トレカ化 + emotionバッジ）
+// ===============================================
 
-export default function PoemCard({ poem, onEdit, onDelete }) {
-  const navigate = useNavigate();
+import React, { useState, useMemo } from "react";
+
+export default function PoemCard({ poem, onEdit, onDelete, onTagClick }) {
+  const [flipped, setFlipped] = useState(false);
 
   const isDark =
     window.matchMedia &&
     window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-  const colors = {
-    card: isDark ? "#2e2e2e" : "#ffffff",
-    text: isDark ? "#f1f2f6" : "#2d3436",
-    border: isDark ? "#555" : "#ddd",
-    buttonBg: isDark ? "#555" : "#eee",
+  // emotion 色
+  const baseColors = {
+    warm: ["#ff9a76", "#ff6b6b"],
+    cool: ["#74b9ff", "#a29bfe"],
+    dark: ["#2d3436", "#000000"],
+    light: ["#ffeaa7", "#fdcb6e"],
+    love: ["#ff6fb1", "#ff3d67"],
+    sorrow: ["#6c5ce7", "#4c3fb1"],
+    growth: ["#55efc4", "#00b894"],
+  };
+
+  const [b1, b2] = baseColors[poem.emotion] || ["#555", "#333"];
+
+  // emotionバッジ（上品なミニバッジ） ---------------------
+  const emotionBadge = (
+    <div
+      style={{
+        position: "absolute",
+        top: "8px",
+        left: "8px",
+        padding: "4px 10px",
+        borderRadius: "12px",
+        background: `linear-gradient(135deg, ${b1}, ${b2})`,
+        color: "#fff",
+        fontSize: "0.65rem",
+        fontWeight: "bold",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+        zIndex: 5, // 背景エフェクトに負けない
+        pointerEvents: "none", // クリック妨害しない
+      }}
+    >
+      {poem.emotion}
+    </div>
+  );
+
+  // seed 生成
+  const seed = useMemo(() => {
+    let s = 0;
+    const str = poem.id + poem.title + poem.poem;
+    for (let i = 0; i < str.length; i++) {
+      s = (s * 31 + str.charCodeAt(i)) % 100000;
+    }
+    return s;
+  }, [poem.id, poem.title, poem.poem]);
+
+  // 擬似乱数
+  const rand = (x) =>
+    parseFloat("0." + Math.sin(seed * (x + 1) * 9973).toString().slice(-6));
+
+  // 背景の揺らぎ（前面も背面も共通）
+  const noiseStyle = {
+    position: "absolute",
+    top: "-30%",
+    left: "-30%",
+    width: "160%",
+    height: "160%",
+    zIndex: 0,
+    background: `radial-gradient(circle at ${rand(1) * 100}% ${
+      rand(2) * 100
+    }%, ${b1}33, transparent 70%)`,
+    filter: "blur(55px)",
+    animation: "bgPulse 8s ease-in-out infinite",
+  };
+
+  const noiseStyle2 = {
+    position: "absolute",
+    top: "-30%",
+    left: "-30%",
+    width: "160%",
+    height: "160%",
+    zIndex: 0,
+    background: `conic-gradient(from ${rand(3) * 360}deg, ${b2}22, transparent, ${b1}22)`,
+    mixBlendMode: "soft-light",
+    filter: "blur(55px)",
+    animation: "bgDrift 13s ease-in-out infinite",
+  };
+
+  // タグスタイル
+  const tagStyle = {
+    padding: "4px 10px",
+    borderRadius: "20px",
+    background: `linear-gradient(135deg, ${b1}, ${b2})`,
+    color: "#fff",
+    fontSize: "0.75rem",
+    display: "inline-block",
+    marginRight: "6px",
+    marginBottom: "6px",
+    cursor: "pointer",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+    transition: "transform 0.2s ease",
+    zIndex: 3,
+    position: "relative",
   };
 
   return (
     <div
-      onClick={() => navigate(`/poem/${poem.id}`)}
+      onClick={() => setFlipped(!flipped)}
       style={{
-        width: "280px",
-        padding: "1rem",
-        borderRadius: "12px",
-        background: colors.card,
-        color: colors.text,
-        border: `1px solid ${colors.border}`,
-        boxShadow: isDark
-          ? "0 4px 12px rgba(0,0,0,0.5)"
-          : "0 4px 12px rgba(0,0,0,0.1)",
-        cursor: "pointer",
-        position: "relative",
+        width: "300px",
+        height: "260px",
+        perspective: "1000px",
       }}
     >
-      {/* タイトル */}
-      <h3 style={{ margin: "0 0 .5rem 0" }}>{poem.title || "（無題）"}</h3>
-
-      {/* 本文の先頭だけチラ見せ */}
-      <p
-        style={{
-          margin: "0 0 .5rem 0",
-          fontSize: "0.9rem",
-          whiteSpace: "pre-wrap",
-          opacity: 0.8,
-        }}
-      >
-        {poem.poem?.slice(0, 40)}…
-      </p>
-
-      {/* emotion / tags */}
-      <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>
-        感情: {poem.emotion}
-      </div>
-
-      {poem.tags && poem.tags.length > 0 && (
-        <div
-          style={{
-            marginTop: "0.4rem",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "0.2rem",
-          }}
-        >
-          {poem.tags.map((tag, i) => (
-            <span
-              key={i}
-              style={{
-                fontSize: "0.75rem",
-                padding: "0.2rem 0.4rem",
-                background: colors.buttonBg,
-                borderRadius: "4px",
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* --- 編集／削除ボタン（カードクリックとは独立） --- */}
+      {/* カードの回転コンテナ */}
       <div
         style={{
-          display: "flex",
-          gap: "0.4rem",
-          marginTop: "0.8rem",
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          transformStyle: "preserve-3d",
+          transition: "transform 0.7s ease",
+          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
         }}
       >
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit(poem);
-          }}
+        {/* ======== Front Side ======== */}
+        <div
           style={{
-            flex: 1,
-            padding: "0.4rem",
-            borderRadius: "6px",
-            border: "none",
-            background: "#74b9ff",
-            color: "#fff",
-            fontWeight: "600",
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            backfaceVisibility: "hidden",
+            background: isDark ? "#2b2b2b" : "#ffffff",
+            borderRadius: "16px",
+            padding: "1.4rem",
+            overflow: "hidden",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.22)",
+            animation: "pulseShadow 4s ease-in-out infinite",
           }}
         >
-          編集
-        </button>
+          {emotionBadge}
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (window.confirm("削除しますか？")) onDelete(poem.id);
-          }}
+          <div style={noiseStyle}></div>
+          <div style={noiseStyle2}></div>
+
+          <div style={{ position: "relative", zIndex: 3 }}>
+            <h3
+              style={{
+                margin: 0,
+                marginBottom: "0.4rem",
+                fontFamily: "'YuMincho', serif",
+              }}
+            >
+              {poem.title}
+            </h3>
+
+            <div style={{ fontSize: "0.75rem", opacity: 0.7 }}>
+              ⭐ Score: {poem.score}
+            </div>
+
+            <div
+              dangerouslySetInnerHTML={{
+                __html: poem.poem.replace(/\n/g, "<br />"),
+              }}
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "0.82rem",
+                maxHeight: "80px",
+                overflow: "hidden",
+              }}
+            />
+
+            {/* タグ表示 */}
+            <div style={{ marginTop: "0.6rem" }}>
+              {(poem.tags || []).map((tag, i) => (
+                <span
+                  key={i}
+                  style={tagStyle}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTagClick(tag);
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.transform = "scale(1.08)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.transform = "scale(1)")
+                  }
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            {/* 編集・削除 */}
+            <div
+              style={{
+                display: "flex",
+                gap: "0.6rem",
+                marginTop: "0.9rem",
+              }}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                style={{
+                  flex: 1,
+                  padding: "0.5rem",
+                  border: "none",
+                  borderRadius: "6px",
+                  background: "#74b9ff",
+                  color: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                編集
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                style={{
+                  flex: 1,
+                  padding: "0.5rem",
+                  border: "none",
+                  borderRadius: "6px",
+                  background: "#ff7675",
+                  color: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                削除
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ======== Back Side ======== */}
+        <div
           style={{
-            flex: 1,
-            padding: "0.4rem",
-            borderRadius: "6px",
-            border: "none",
-            background: "#ff7675",
-            color: "#fff",
-            fontWeight: "600",
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            padding: "1.4rem",
+            background: isDark ? "#252525" : "#fefefe",
+            borderRadius: "16px",
+            backfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+            overflowY: "auto",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.22)",
           }}
         >
-          削除
-        </button>
+          {emotionBadge}
+
+          <h3
+            style={{
+              marginTop: 0,
+              marginBottom: "0.6rem",
+              fontFamily: "'YuMincho', serif",
+            }}
+          >
+            詳細情報
+          </h3>
+
+          <p style={{ fontSize: "0.85rem", opacity: 0.85 }}>
+            <b>Emotion:</b> {poem.emotion}
+          </p>
+
+          <p style={{ fontSize: "0.85rem", opacity: 0.85 }}>
+            <b>AI コメント:</b><br />
+            {poem.comment}
+          </p>
+
+          <p style={{ fontSize: "0.8rem", opacity: 0.85 }}>
+            <b>作成日時:</b> {new Date(poem.created_at).toLocaleString()}
+          </p>
+
+          <div style={{ marginTop: "0.8rem" }}>
+            <b>タグ詳細:</b>
+            <div style={{ marginTop: "0.4rem" }}>
+              {(poem.tags || []).map((tag, i) => (
+                <span
+                  key={i}
+                  style={{
+                    ...tagStyle,
+                    fontSize: "0.7rem",
+                    padding: "3px 8px",
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTagClick(tag);
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setFlipped(false);
+            }}
+            style={{
+              marginTop: "1rem",
+              width: "100%",
+              padding: "0.6rem",
+              border: "none",
+              borderRadius: "8px",
+              background: "#636e72",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            裏面を閉じる
+          </button>
+        </div>
       </div>
+
+      <style>
+        {`
+          @keyframes pulseShadow {
+            0% { box-shadow: 0 4px 18px rgba(0,0,0,0.18); }
+            50% { box-shadow: 0 8px 26px rgba(0,0,0,0.28); }
+            100% { box-shadow: 0 4px 18px rgba(0,0,0,0.18); }
+          }
+
+          @keyframes bgPulse {
+            0% { transform: scale(1); opacity: .45; }
+            50% { transform: scale(1.08); opacity: .65; }
+            100% { transform: scale(1); opacity: .45; }
+          }
+
+          @keyframes bgDrift {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(12deg); }
+            100% { transform: rotate(0deg); }
+          }
+        `}
+      </style>
     </div>
   );
 }

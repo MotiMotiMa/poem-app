@@ -1,9 +1,13 @@
+// ================================================
+// PoemViewPage.jsx（App.js 全画面ローディング対応版）
+// ================================================
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import supabase from "../supabaseClient";
 import { jsPDF } from "jspdf";
 
-export default function PoemViewPage() {
+export default function PoemViewPage({ setLoading }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -26,8 +30,13 @@ export default function PoemViewPage() {
     },
   };
 
+  // ---------------------------
+  //   詩データ取得（画面ぐるぐる）
+  // ---------------------------
   useEffect(() => {
     const fetchPoem = async () => {
+      setLoading(true); // ★ 全画面ぐるぐる開始
+
       const { data } = await supabase
         .from("poems")
         .select("*")
@@ -35,10 +44,12 @@ export default function PoemViewPage() {
         .single();
 
       setPoem(data);
+
+      setLoading(false); // ★ 全画面ぐるぐる終了
     };
 
     fetchPoem();
-  }, [id]);
+  }, [id, setLoading]);
 
   if (!poem) {
     return (
@@ -56,9 +67,11 @@ export default function PoemViewPage() {
   }
 
   // ---------------------------
-  //   PDF出力機能
+  //   PDF出力（ぐるぐる付き）
   // ---------------------------
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    setLoading(true); // ★ PDF生成前に全画面ぐるぐる
+
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
@@ -101,8 +114,9 @@ export default function PoemViewPage() {
     const commentLines = pdf.splitTextToSize(poem.comment, 170);
     pdf.text(commentLines, 20, y);
 
-    // ダウンロード
     pdf.save(`${poem.title || "poem"}.pdf`);
+
+    setLoading(false); // ★ PDF完成後にぐるぐる解除
   };
 
   // ---------------------------
