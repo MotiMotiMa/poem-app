@@ -1,11 +1,10 @@
 // src/evaluatePoem.js
 export async function evaluatePoem(title, poemText) {
-  console.log("FUNCTION URL:", functionUrl);
   const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-  console.log("SUPABASE_URL:", process.env.REACT_APP_SUPABASE_URL);
+  console.log("SUPABASE_URL:", supabaseUrl);
 
   if (!supabaseUrl) {
-    console.error("エラー: REACT_APP_SUPABASE_URL が設定されていません。");
+    console.error("エラー: SUPABASE_URL が設定されていません。");
     return {
       score: 0,
       comment: "評価できませんでした (URL未設定)",
@@ -15,11 +14,11 @@ export async function evaluatePoem(title, poemText) {
     };
   }
 
+  // ⚠️ functionUrl はここで初めて定義
   const functionUrl = `${supabaseUrl}/functions/v1/evaluate-poem`;
 
-  try {
-    console.log("Function URL:", functionUrl);
 
+  try {
     const res = await fetch(functionUrl, {
       method: "POST",
       headers: {
@@ -28,7 +27,7 @@ export async function evaluatePoem(title, poemText) {
       },
       body: JSON.stringify({
         title,
-        poemText,   // ← これが正しい
+        poemText,
       }),
     });
 
