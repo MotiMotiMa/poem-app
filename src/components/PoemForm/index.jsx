@@ -1,7 +1,7 @@
 import TitleInput from "./TitleInput";
 import TitleCandidates from "./TitleCandidates";
 import PoemTextarea from "./PoemTextarea";
-import EmotionSelect from "./EmotionSelect";
+import EmotionSelect from "../EmotionSelect";
 import SubmitButton from "./SubmitButton";
 import usePoemFormState from "./usePoemFormState";
 
@@ -55,11 +55,11 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
         colors={colors}
       />
 
-      <EmotionSelect
-        value={emotion}
-        onChange={(v) => setEmotion(v)}
-        colors={colors}
-      />
+        <EmotionSelect
+          value={emotion}
+          onChange={setEmotion}
+          colors={colors}
+        />
 
       <SubmitButton editingPoem={editingPoem} colors={colors} />
     </form>

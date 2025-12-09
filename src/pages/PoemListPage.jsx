@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../supabaseClient";
 
-import PoemForm from "../components/PoemForm";
+import PoemForm from "../components/PoemForm/PoemForm";
 import PoemCard from "../components/PoemCard";
 import AuthButtons from "../components/AuthButtons";
 import SearchBar from "../components/SearchBar";

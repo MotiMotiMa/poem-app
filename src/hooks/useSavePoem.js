@@ -51,7 +51,17 @@ ${poemText}
       const data = await res.json();
       const output = data.choices?.[0]?.message?.content?.trim().toLowerCase();
 
-      const allowed = ["warm", "cool", "dark", "light", "love", "sorrow", "growth"];
+     const allowed = [
+          "warm",
+          "cool",
+          "dark",
+          "light",
+          "love",
+          "sorrow",
+          "growth",
+          "nostalgia",
+          "void",
+      ];
       if (allowed.includes(output)) return output;
 
       // fallback

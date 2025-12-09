@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import supabase from "../supabaseClient";
-import PoemForm from "../components/PoemForm";
+import PoemForm from "../components/PoemForm/PoemForm";
 import useSavePoem from "../hooks/useSavePoem";
 import usePoems from "../hooks/usePoems";
 

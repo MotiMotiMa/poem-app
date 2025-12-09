@@ -1,5 +1,6 @@
 // src/components/PoemForm.jsx
 import { useState, useEffect } from "react";
+import EmotionSelect from "../EmotionSelect";
 
 export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
   const [title, setTitle] = useState("");
@@ -274,28 +275,11 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
         <label style={{ display: "block", fontWeight: "600", color: colors.label }}>
           感情テーマ
         </label>
-        <select
+        <EmotionSelect
           value={emotion}
-          onChange={(e) => setEmotion(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "0.7rem",
-            borderRadius: "8px",
-            marginBottom: "0.5rem",
-            background: colors.inputBg,
-            border: `1px solid ${colors.inputBorder}`,
-            color: colors.text,
-          }}
-        >
-          <option value="warm">warm（優しい・懐かしい）</option>
-          <option value="cool">cool（静けさ・孤独）</option>
-          <option value="dark">dark（苦しみ・影）</option>
-          <option value="light">light（希望・光）</option>
-          <option value="love">love（恋・欲）</option>
-          <option value="sorrow">sorrow（喪失・痛み）</option>
-          <option value="growth">growth（再生・覚醒）</option>
-          <option value="auto">auto（AI自動判定）</option>
-        </select>
+          onChange={setEmotion}
+          colors={colors}
+        />
 
         {/* Auto 情報表示 */}
         {emotion === "auto" && (

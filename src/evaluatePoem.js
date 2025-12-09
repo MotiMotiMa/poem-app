@@ -1,7 +1,7 @@
 // src/evaluatePoem.js
 export async function evaluatePoem(title, poemText) {
   const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-  console.log("SUPABASE_URL:", supabaseUrl);
+  //console.log("SUPABASE_URL:", supabaseUrl);
 
   if (!supabaseUrl) {
     console.error("エラー: SUPABASE_URL が設定されていません。");
