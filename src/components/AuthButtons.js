@@ -4,7 +4,7 @@ function AuthButtons({ user }) {
   const login = async () => {
     const redirectUrl =
       process.env.NODE_ENV === "production"
-        ? "https://poem-app.vercel.app"   // ← 本番URL（あなたのURLに変更）
+        ? "https://poem-app-blond.vercel.app"   // ← 本番URL（あなたのURLに変更）
         : "http://localhost:3000";        // ← 開発時のみ
 
     await supabase.auth.signInWithOAuth({
