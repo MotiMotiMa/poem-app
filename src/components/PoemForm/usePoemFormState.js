@@ -5,9 +5,7 @@ export default function usePoemFormState({ onSave, editingPoem }) {
   const [poemText, setPoemText] = useState("");
   const [emotion, setEmotion] = useState("cool");
 
-  const isDark =
-    window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = false;
 
   // ダーク / ライトテーマ
   const colors = {

@@ -1,71 +1,59 @@
-import React, { useState, useMemo } from "react";
+// ===============================================
+// App.js（OSテーマ自動追従 + Router削除版 完全版）
+// ===============================================
 import { Routes, Route } from "react-router-dom";
-
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
-import IconButton from "@mui/material/IconButton";
-import Brightness4Icon from "@mui/icons-material/Brightness4";
-import Brightness7Icon from "@mui/icons-material/Brightness7";
-import CircularProgress from "@mui/material/CircularProgress";
+import { useEffect, useState } from "react";
 
 import PoemListPage from "./pages/PoemListPage";
 import EditPage from "./pages/EditPage";
 import PoemViewPage from "./pages/PoemViewPage";
 
-function App() {
-  const [mode, setMode] = useState("light");
+import { getTheme } from "./theme";
 
-  // 追加：アプリ共通のローディング状態
+function App() {
   const [loading, setLoading] = useState(false);
 
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode,
-          background: { default: "#fafafa", paper: "#ffffff" },
-          text: { primary: "#000000" },
-        },
-      }),
-    [mode]
+  // -----------------------------------------------
+  // OS のライト/ダーク設定を読み取り state に保持
+  // -----------------------------------------------
+  const [mode, setMode] = useState(
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light"
   );
 
+  // -----------------------------------------------
+  // OS のテーマ変更（light ↔ dark）をリアルタイム検知
+  // -----------------------------------------------
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const handler = (e) => {
+      setMode(e.matches ? "dark" : "light");
+    };
+
+    mq.addEventListener("change", handler);
+
+    // クリーンアップ
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // -----------------------------------------------
+  // 現在のモードに対応したテーマオブジェクトを生成
+  // -----------------------------------------------
+  const theme = getTheme(mode);
+
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <div
+      style={{
+        background: theme.bg,
+        minHeight: "100vh",
+        color: theme.text,
+        transition: "background 0.3s ease, color 0.3s ease",
+      }}
+    >
+      {/* ローディングUI（そのまま） */}
 
-      {/* === 全画面ローディング === */}
-      {loading && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2000,
-          }}
-        >
-          <CircularProgress size={70} thickness={5} style={{ color: "#ffffff" }} />
-        </div>
-      )}
-
-      {/* === ダークモード切替 === */}
-      <div style={{ position: "fixed", top: 10, right: 10, zIndex: 1000 }}>
-        <IconButton onClick={() => setMode(mode === "light" ? "dark" : "light")}>
-          {mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
-        </IconButton>
-      </div>
-
-      <div style={{ textAlign: "center", marginTop: "1rem" }}>
-        <h1>🌈 詩作成システム</h1>
-      </div>
-
-      {/* === ページ遷移 === */}
       <Routes>
         <Route
           path="/"
@@ -76,11 +64,11 @@ function App() {
           element={<EditPage theme={mode} setLoading={setLoading} />}
         />
         <Route
-          path="/poem/:id"
+          path="/view/:id"
           element={<PoemViewPage theme={mode} setLoading={setLoading} />}
         />
       </Routes>
-    </ThemeProvider>
+    </div>
   );
 }
 

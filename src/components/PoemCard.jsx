@@ -1,350 +1,177 @@
-// ===============================================
-// PoemCard.jsx（レベル7：カード裏返し・トレカ化 + emotionバッジ）
-// ===============================================
+// ========================================================
+// PoemCard.jsx（最終安定版）
+// - 表示専用
+// - owner 判定は外部で完結
+// ========================================================
 
-import React, { useState, useMemo } from "react";
+import React from "react";
+import DeleteIcon from "@mui/icons-material/Delete";
+import TagPill from "./TagPill";
 
-export default function PoemCard({ poem, onEdit, onDelete, onTagClick }) {
-  const [flipped, setFlipped] = useState(false);
+export default function PoemCard({
+  poem,
+  onEdit,     // 自分の詩のときだけ渡される
+  onDelete,   // 自分の詩のときだけ渡される
+  onTagClick,
+  onRead,
+  theme,
+}) {
+  const safeTheme = theme || "light";
+  const isDark = safeTheme === "dark";
 
-  const isDark =
-    window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-  // emotion 色
-  const baseColors = {
-    warm: ["#ff9a76", "#ff6b6b"],
-    cool: ["#74b9ff", "#a29bfe"],
-    dark: ["#2d3436", "#000000"],
-    light: ["#ffeaa7", "#fdcb6e"],
-    love: ["#ff6fb1", "#ff3d67"],
-    sorrow: ["#6c5ce7", "#4c3fb1"],
-    growth: ["#55efc4", "#00b894"],
+  const emotionBg = {
+    warm: isDark
+      ? "linear-gradient(145deg, #4e3b32, #814e33)"
+      : "linear-gradient(145deg, #ffe0c2, #ffb68a)",
+    cool: isDark
+      ? "linear-gradient(145deg, #3b4248, #556067)"
+      : "linear-gradient(145deg, #dfe7ee, #c7d4df)",
+    dark: isDark
+      ? "linear-gradient(145deg, #1a1f24, #2c343a)"
+      : "linear-gradient(145deg, #2c3e50, #4ca1af)",
+    light: isDark
+      ? "linear-gradient(145deg, #3c3c3c, #5a5a5a)"
+      : "linear-gradient(145deg, #ffffff, #f1f1f1)",
+    love: isDark
+      ? "linear-gradient(145deg, #5b2e3c, #7c3a4d)"
+      : "linear-gradient(145deg, #ffd0d6, #ff9aae)",
+    sorrow: isDark
+      ? "linear-gradient(145deg, #2f4962, #3b5b77)"
+      : "linear-gradient(145deg, #bcd2f5, #d9e6fa)",
+    growth: isDark
+      ? "linear-gradient(145deg, #32462b, #4e6b43)"
+      : "linear-gradient(145deg, #e2f8c2, #c8f0a1)",
   };
 
-  const [b1, b2] = baseColors[poem.emotion] || ["#555", "#333"];
+  const bg = emotionBg[poem.emotion] || emotionBg.light;
 
-  // emotionバッジ（上品なミニバッジ） ---------------------
-  const emotionBadge = (
-    <div
-      style={{
-        position: "absolute",
-        top: "8px",
-        left: "8px",
-        padding: "4px 10px",
-        borderRadius: "12px",
-        background: `linear-gradient(135deg, ${b1}, ${b2})`,
-        color: "#fff",
-        fontSize: "0.65rem",
-        fontWeight: "bold",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
-        zIndex: 5, // 背景エフェクトに負けない
-        pointerEvents: "none", // クリック妨害しない
-      }}
-    >
-      {poem.emotion}
-    </div>
-  );
-
-  // seed 生成
-  const seed = useMemo(() => {
-    let s = 0;
-    const str = poem.id + poem.title + poem.poem;
-    for (let i = 0; i < str.length; i++) {
-      s = (s * 31 + str.charCodeAt(i)) % 100000;
-    }
-    return s;
-  }, [poem.id, poem.title, poem.poem]);
-
-  // 擬似乱数
-  const rand = (x) =>
-    parseFloat("0." + Math.sin(seed * (x + 1) * 9973).toString().slice(-6));
-
-  // 背景の揺らぎ（前面も背面も共通）
-  const noiseStyle = {
-    position: "absolute",
-    top: "-30%",
-    left: "-30%",
-    width: "160%",
-    height: "160%",
-    zIndex: 0,
-    background: `radial-gradient(circle at ${rand(1) * 100}% ${
-      rand(2) * 100
-    }%, ${b1}33, transparent 70%)`,
-    filter: "blur(55px)",
-    animation: "bgPulse 8s ease-in-out infinite",
+  const colors = {
+    text: isDark ? "#f1f1f1" : "#222",
+    readBg: isDark ? "#7cc2ff" : "#2980b9",
+    editBg: isDark ? "#555" : "#e0e0e0",
+    deleteBg: isDark ? "#a04444" : "#ff6b6b",
   };
 
-  const noiseStyle2 = {
-    position: "absolute",
-    top: "-30%",
-    left: "-30%",
-    width: "160%",
-    height: "160%",
-    zIndex: 0,
-    background: `conic-gradient(from ${rand(3) * 360}deg, ${b2}22, transparent, ${b1}22)`,
-    mixBlendMode: "soft-light",
-    filter: "blur(55px)",
-    animation: "bgDrift 13s ease-in-out infinite",
-  };
-
-  // タグスタイル
-  const tagStyle = {
-    padding: "4px 10px",
-    borderRadius: "20px",
-    background: `linear-gradient(135deg, ${b1}, ${b2})`,
-    color: "#fff",
-    fontSize: "0.75rem",
-    display: "inline-block",
-    marginRight: "6px",
-    marginBottom: "6px",
-    cursor: "pointer",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-    transition: "transform 0.2s ease",
-    zIndex: 3,
-    position: "relative",
-  };
+  const previewText = poem.poem
+    ? poem.poem.split("\n").slice(0, 2).join("\n") +
+      (poem.poem.split("\n").length > 2 ? " …" : "")
+    : "";
 
   return (
     <div
-      onClick={() => setFlipped(!flipped)}
       style={{
-        width: "300px",
-        height: "260px",
-        perspective: "1000px",
+        position: "relative",
+        width: "280px",
+        minHeight: "340px",
+        borderRadius: "16px",
+        padding: "1rem",
+        color: colors.text,
+        fontFamily: "'YuMincho', serif",
+        background: bg,
+        boxShadow: isDark
+          ? "0 4px 18px rgba(0,0,0,0.55)"
+          : "0 4px 14px rgba(0,0,0,0.12)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
       }}
     >
-      {/* カードの回転コンテナ */}
+      {/* タイトル */}
+      <h3
+        onClick={onRead}
+        style={{ cursor: "pointer", marginBottom: "0.4rem" }}
+      >
+        {poem.title || "(無題)"}
+      </h3>
+
+      {/* プレビュー */}
       <div
+        onClick={onRead}
         style={{
-          position: "relative",
-          width: "100%",
-          height: "100%",
-          transformStyle: "preserve-3d",
-          transition: "transform 0.7s ease",
-          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          whiteSpace: "pre-wrap",
+          cursor: "pointer",
+          flexGrow: 1,
         }}
       >
-        {/* ======== Front Side ======== */}
-        <div
+        {previewText}
+      </div>
+
+      {/* タグ */}
+      <div
+        style={{
+          marginTop: "0.6rem",
+          display: "flex",
+          gap: "0.4rem",
+          flexWrap: "wrap",
+        }}
+      >
+        {(poem.tags || []).map((tag, i) => (
+          <TagPill
+            key={i}
+            label={tag}
+            theme={safeTheme}
+            onClick={() => onTagClick(tag)}
+          />
+        ))}
+      </div>
+
+      {/* 操作ボタン */}
+      <div
+        style={{
+          marginTop: "1rem",
+          position: "relative",
+          textAlign: "center",
+        }}
+      >
+        <button
+          onClick={onRead}
           style={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            backfaceVisibility: "hidden",
-            background: isDark ? "#2b2b2b" : "#ffffff",
-            borderRadius: "16px",
-            padding: "1.4rem",
-            overflow: "hidden",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.22)",
-            animation: "pulseShadow 4s ease-in-out infinite",
+            padding: "0.5rem 1.4rem",
+            borderRadius: "20px",
+            background: colors.readBg,
+            color: "#fff",
+            border: "none",
+            cursor: "pointer",
           }}
         >
-          {emotionBadge}
+          読む
+        </button>
 
-          <div style={noiseStyle}></div>
-          <div style={noiseStyle2}></div>
-
-          <div style={{ position: "relative", zIndex: 3 }}>
-            <h3
-              style={{
-                margin: 0,
-                marginBottom: "0.4rem",
-                fontFamily: "'YuMincho', serif",
-              }}
-            >
-              {poem.title}
-            </h3>
-
-            <div style={{ fontSize: "0.75rem", opacity: 0.7 }}>
-              ⭐ Score: {poem.score}
-            </div>
-
-            <div
-              dangerouslySetInnerHTML={{
-                __html: poem.poem.replace(/\n/g, "<br />"),
-              }}
-              style={{
-                marginTop: "0.5rem",
-                fontSize: "0.82rem",
-                maxHeight: "80px",
-                overflow: "hidden",
-              }}
-            />
-
-            {/* タグ表示 */}
-            <div style={{ marginTop: "0.6rem" }}>
-              {(poem.tags || []).map((tag, i) => (
-                <span
-                  key={i}
-                  style={tagStyle}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTagClick(tag);
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.transform = "scale(1.08)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.transform = "scale(1)")
-                  }
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            {/* 編集・削除 */}
-            <div
-              style={{
-                display: "flex",
-                gap: "0.6rem",
-                marginTop: "0.9rem",
-              }}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit();
-                }}
-                style={{
-                  flex: 1,
-                  padding: "0.5rem",
-                  border: "none",
-                  borderRadius: "6px",
-                  background: "#74b9ff",
-                  color: "#fff",
-                  cursor: "pointer",
-                }}
-              >
-                編集
-              </button>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                style={{
-                  flex: 1,
-                  padding: "0.5rem",
-                  border: "none",
-                  borderRadius: "6px",
-                  background: "#ff7675",
-                  color: "#fff",
-                  cursor: "pointer",
-                }}
-              >
-                削除
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ======== Back Side ======== */}
-        <div
-          style={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            padding: "1.4rem",
-            background: isDark ? "#252525" : "#fefefe",
-            borderRadius: "16px",
-            backfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-            overflowY: "auto",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.22)",
-          }}
-        >
-          {emotionBadge}
-
-          <h3
-            style={{
-              marginTop: 0,
-              marginBottom: "0.6rem",
-              fontFamily: "'YuMincho', serif",
-            }}
-          >
-            詳細情報
-          </h3>
-
-          <p style={{ fontSize: "0.85rem", opacity: 0.85 }}>
-            <b>Emotion:</b> {poem.emotion}
-          </p>
-
-          <p style={{ fontSize: "0.85rem", opacity: 0.85 }}>
-            <b>AI コメント:</b><br />
-            {poem.comment}
-          </p>
-
-          <p style={{ fontSize: "0.8rem", opacity: 0.85 }}>
-            <b>作成日時:</b> {new Date(poem.created_at).toLocaleString()}
-          </p>
-
-          <div style={{ marginTop: "0.8rem" }}>
-            <b>タグ詳細:</b>
-            <div style={{ marginTop: "0.4rem" }}>
-              {(poem.tags || []).map((tag, i) => (
-                <span
-                  key={i}
-                  style={{
-                    ...tagStyle,
-                    fontSize: "0.7rem",
-                    padding: "3px 8px",
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTagClick(tag);
-                  }}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-
+        {onEdit && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setFlipped(false);
-            }}
+            onClick={onEdit}
             style={{
-              marginTop: "1rem",
-              width: "100%",
-              padding: "0.6rem",
-              border: "none",
+              position: "absolute",
+              left: 0,
+              padding: "0.4rem 0.75rem",
               borderRadius: "8px",
-              background: "#636e72",
-              color: "#fff",
+              background: colors.editBg,
+              border: "none",
+              fontSize: "0.78rem",
               cursor: "pointer",
             }}
           >
-            裏面を閉じる
+            編集
           </button>
-        </div>
+        )}
+
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            style={{
+              position: "absolute",
+              right: 0,
+              padding: "0.4rem",
+              borderRadius: "50%",
+              background: colors.deleteBg,
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            <DeleteIcon style={{ color: "#fff", fontSize: "1.1rem" }} />
+          </button>
+        )}
       </div>
-
-      <style>
-        {`
-          @keyframes pulseShadow {
-            0% { box-shadow: 0 4px 18px rgba(0,0,0,0.18); }
-            50% { box-shadow: 0 8px 26px rgba(0,0,0,0.28); }
-            100% { box-shadow: 0 4px 18px rgba(0,0,0,0.18); }
-          }
-
-          @keyframes bgPulse {
-            0% { transform: scale(1); opacity: .45; }
-            50% { transform: scale(1.08); opacity: .65; }
-            100% { transform: scale(1); opacity: .45; }
-          }
-
-          @keyframes bgDrift {
-            0% { transform: rotate(0deg); }
-            50% { transform: rotate(12deg); }
-            100% { transform: rotate(0deg); }
-          }
-        `}
-      </style>
     </div>
   );
 }

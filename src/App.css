@@ -1,15 +1,23 @@
+/* ============================================
+   全ページ：白文字になる問題を完全に除去
+   「OSダークモードの影響」を全拒否して黒文字に統一
+   ============================================ */
+
+/* 1. body の背景と基本文字色を強制設定 */
 body {
   margin: 0;
   font-family: "Comic Sans MS", cursive, sans-serif;
-  background: linear-gradient(135deg, #f9d423, #ff4e50);
-  background-attachment: fixed;
-  color: #2d3436;
+  background: #fafafa !important; /* 明るい背景で統一 */
+  color: #222 !important;         /* 全ページの基本文字色 */
 }
 
-h1, h2 {
-  text-shadow: 2px 2px #ffffffaa;
+/* 2. h1, h2, p, span, div などの文字色を再強制 */
+h1, h2, h3, h4, h5, h6,
+p, span, div, label, a, li {
+  color: #222 !important;
 }
 
+/* 3. ボタンデフォルト */
 button {
   border: none;
   border-radius: 8px;
@@ -17,55 +25,63 @@ button {
   cursor: pointer;
   font-weight: bold;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  color: #222 !important;  /* ボタンの文字色も黒に統一 */
 }
 
+/* hover */
 button:hover {
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
 }
 
-select {
+/* 4. select, input, textarea */
+select, input, textarea {
   border-radius: 8px;
-  padding: 0.3rem 0.5rem;
+  padding: 0.4rem 0.6rem;
   font-size: 1rem;
+  background: #fff !important;
+  color: #222 !important;
+  border: 1px solid #ccc !important;
 }
 
+/* 5. React App 標準要素の白文字を削除 */
 .App {
   text-align: center;
+  color: #222 !important;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
+/* 6. App-header などダーク背景を使う部分を完全停止 */
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  background-color: transparent !important;
+  color: #222 !important;
 }
 
-.App-link {
-  color: #61dafb;
+/* 7. ページ最上位コンテナ（黒背景になりがちな箇所） */
+.page-root,
+.page-container,
+.main-container {
+  background: #fafafa !important;
+  color: #222 !important;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* 8. カード類（PoemCard など） */
+.card,
+.poem-card,
+.poem-container {
+  background: #ffffff !important;
+  color: #222 !important;
 }
 
+/* 9. スクロールバーが黒くなる対策 */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}

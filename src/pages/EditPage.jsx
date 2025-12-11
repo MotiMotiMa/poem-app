@@ -1,31 +1,21 @@
-// src/pages/EditPage.jsx
+// =======================================================
+// EditPage.jsx（API統合・theme完全対応・軽量版）
+// =======================================================
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import supabase from "../supabaseClient";
-import PoemForm from "../components/PoemForm/PoemForm";
-import useSavePoem from "../hooks/useSavePoem";
-import usePoems from "../hooks/usePoems";
 
-export default function EditPage({ setLoading }) {
+import PoemForm from "../components/PoemForm/PoemForm";
+import { loadPoem, savePoem } from "../supabase/poemApi";
+
+export default function EditPage({ theme, setLoading }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [poem, setPoem] = useState(null);
-  const [pageLoading, setPageLoading] = useState(true); // ← ページ専用のローディング
+  const [pageLoading, setPageLoading] = useState(true);
 
-  const { refresh } = usePoems();
-
-  const { savePoem } = useSavePoem({
-    refresh,
-    setTitleCandidates: () => {},
-    setEditingPoem: () => {},
-  });
-
-  // ダークモード判定
-  const isDark =
-    window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = theme === "dark";
 
   const colors = {
     bg: isDark ? "#1c1c1c" : "#f5f5f5",
@@ -35,40 +25,37 @@ export default function EditPage({ setLoading }) {
     link: isDark ? "#81c7ff" : "#2980b9",
   };
 
-  // --------------------------
-  // データ読み込み（ページ自体のローディング）
-  // --------------------------
+  // ----------------------------------------------------
+  // 詩データ読み込み（API）
+  // ----------------------------------------------------
   useEffect(() => {
-    async function load() {
+    async function fetch() {
       setPageLoading(true);
 
-      const { data } = await supabase
-        .from("poems")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const loaded = await loadPoem(id);
+      setPoem(loaded);
 
-      setPoem(data);
       setPageLoading(false);
     }
-    load();
+
+    fetch();
   }, [id]);
 
-  // --------------------------
-  // 保存処理（App.js の全画面ぐるぐるを使用）
-  // --------------------------
-  const handleSave = async (poemData) => {
-    setLoading(true); // ← 全画面ぐるぐる起動
+  // ----------------------------------------------------
+  // 保存処理（API 呼び出し）
+  // ----------------------------------------------------
+  const handleSave = async (data) => {
+    setLoading(true);
 
-    await savePoem(poemData, poem);
+    await savePoem(id, data);
 
-    setLoading(false); // ← ぐるぐる解除
+    setLoading(false);
     navigate("/");
   };
 
-  // --------------------------
-  // ページロード中（ページ用ぐるぐる）
-  // --------------------------
+  // ----------------------------------------------------
+  // ページロード中
+  // ----------------------------------------------------
   if (pageLoading) {
     return (
       <div
@@ -106,9 +93,9 @@ export default function EditPage({ setLoading }) {
     );
   }
 
-  // --------------------------
+  // ----------------------------------------------------
   // データなし
-  // --------------------------
+  // ----------------------------------------------------
   if (!poem) {
     return (
       <div
@@ -124,15 +111,16 @@ export default function EditPage({ setLoading }) {
     );
   }
 
-  // --------------------------
+  // ----------------------------------------------------
   // 通常画面
-  // --------------------------
+  // ----------------------------------------------------
   return (
     <div
       style={{
         background: colors.bg,
         minHeight: "100vh",
         padding: "2rem",
+        transition: "0.3s ease",
       }}
     >
       {/* 戻るリンク */}
@@ -175,9 +163,10 @@ export default function EditPage({ setLoading }) {
         </h2>
 
         <PoemForm
-          onSave={handleSave}
-          editingPoem={poem}
-          titleCandidates={[]} // 編集時はタイトル候補なし
+          poemId={id}
+          theme={theme}
+          setLoading={setLoading}
+          onSaved={() => navigate("/")}
         />
       </div>
     </div>

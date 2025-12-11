@@ -1,0 +1,12 @@
+drop policy if exists "insert own poem" on poems;
+
+create policy "insert own poem"
+on poems
+for insert
+with check (
+  auth.uid() = user_id
+);
+
+select policyname, permissive, roles, cmd, qual
+from pg_policies
+where tablename = 'poems';

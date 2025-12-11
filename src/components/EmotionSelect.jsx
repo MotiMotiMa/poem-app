@@ -1,34 +1,60 @@
-export default function EmotionSelect({ value, onChange, colors }) {
-  return (
-    <>
-      <label style={{ display: "block", fontWeight: "600", color: colors.label }}>
-        感情テーマ（AIが自動生成します）
-      </label>
+// =======================================================
+// EmotionSelect.jsx（palette完全対応）
+// =======================================================
 
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+import React from "react";
+
+const EMOTIONS = [
+  { value: "light", label: "光 / Light" },
+  { value: "dark", label: "闇 / Dark" },
+  { value: "warm", label: "温 / Warm" },
+  { value: "cool", label: "冷 / Cool" },
+  { value: "love", label: "愛 / Love" },
+  { value: "sorrow", label: "哀 / Sorrow" },
+  { value: "growth", label: "芽 / Growth" },
+];
+
+export default function EmotionSelect({ value, onChange, palette }) {
+  return (
+    <div style={{ marginBottom: "1.2rem" }}>
+      <div
         style={{
-          width: "100%",
-          padding: "0.7rem",
-          borderRadius: "8px",
-          marginBottom: "1.2rem",
-          background: colors.inputBg,
-          border: `1px solid ${colors.inputBorder}`,
-          color: colors.text,
+          fontFamily: "'YuMincho', serif",
+          marginBottom: "0.4rem",
+          opacity: 0.85,
         }}
       >
-        {/* 既存 */}
-        <option value="warm" translate="no">warm（優しい・懐かしい）</option>
-        <option value="cool" translate="no">cool（静けさ・孤独）</option>
-        <option value="dark" translate="no"> dark（苦しみ・影）</option>
-        <option value="light" translate="no">light（希望・光）</option>
-        <option value="love" translate="no">love（恋・親密・繋がり）</option>
-        <option value="sorrow" translate="no">sorrow（悲しみ・喪失）</option>
-        <option value="growth" translate="no">growth（変化・再生）</option>
-        <option value="nostalgia" translate="no">nostalgia（郷愁・思い出）</option>
-        <option value="void" translate="no">void（空虚・無）</option>
-      </select>
-    </>
+        感情
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+        {EMOTIONS.map((e) => {
+          const selected = value === e.value;
+
+          return (
+            <div
+              key={e.value}
+              onClick={() => onChange(e.value)}
+              style={{
+                padding: "0.4rem 0.8rem",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontFamily: "'YuMincho', serif",
+                background: selected
+                  ? palette.primary
+                  : palette.inputBg,
+                color: selected ? "#fff" : palette.text,
+                border: `1px solid ${
+                  selected ? palette.primary : palette.border
+                }`,
+                transition: "0.25s ease",
+              }}
+            >
+              {e.label}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

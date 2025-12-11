@@ -1,41 +1,33 @@
-// ================================================
-// PoemViewPage.jsx（App.js 全画面ローディング対応版）
-// ================================================
+// =======================================================
+// PoemViewPage.jsx（TagPill対応・theme完全対応）
+// =======================================================
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import supabase from "../supabaseClient";
-import { jsPDF } from "jspdf";
+import TagPill from "../components/TagPill";
 
-export default function PoemViewPage({ setLoading }) {
+export default function PoemViewPage({ theme }) {
   const { id } = useParams();
-  const navigate = useNavigate();
-
   const [poem, setPoem] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const isDark =
-    window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = theme === "dark";
 
   const colors = {
-    bg: isDark ? "#1e1e1e" : "#fafafa",
-    card: isDark ? "#2a2a2a" : "#ffffff",
-    text: isDark ? "#f1f1f1" : "#2c3e50",
-    border: isDark ? "#555" : "#ddd",
-    emotion: {
-      warm: "#f39c12",
-      cool: "#3498db",
-      dark: "#8e44ad",
-      light: "#2ecc71",
-    },
+    bg: isDark ? "#1d1d1d" : "#f4f4f4",
+    card: isDark ? "#2b2b2b" : "#ffffff",
+    text: isDark ? "#eeeeee" : "#222222",
+    border: isDark ? "#444" : "#ccc",
+    link: isDark ? "#81c7ff" : "#1e88e5",
   };
 
-  // ---------------------------
-  //   詩データ取得（画面ぐるぐる）
-  // ---------------------------
+  // ------------------------------
+  // 詩を取得
+  // ------------------------------
   useEffect(() => {
-    const fetchPoem = async () => {
-      setLoading(true); // ★ 全画面ぐるぐる開始
+    async function load() {
+      setLoading(true);
 
       const { data } = await supabase
         .from("poems")
@@ -44,21 +36,27 @@ export default function PoemViewPage({ setLoading }) {
         .single();
 
       setPoem(data);
+      setLoading(false);
+    }
 
-      setLoading(false); // ★ 全画面ぐるぐる終了
-    };
+    load();
+  }, [id]);
 
-    fetchPoem();
-  }, [id, setLoading]);
-
-  if (!poem) {
+  // ------------------------------
+  // ローディング
+  // ------------------------------
+  if (loading) {
     return (
       <div
         style={{
+          background: colors.bg,
           color: colors.text,
-          padding: "2rem",
-          textAlign: "center",
-          fontFamily: "'YuMincho', serif",
+          width: "100vw",
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontSize: "1.2rem",
         }}
       >
         読み込み中…
@@ -66,199 +64,128 @@ export default function PoemViewPage({ setLoading }) {
     );
   }
 
-  // ---------------------------
-  //   PDF出力（ぐるぐる付き）
-  // ---------------------------
-  const generatePDF = async () => {
-    setLoading(true); // ★ PDF生成前に全画面ぐるぐる
+  if (!poem) {
+    return (
+      <div
+        style={{
+          background: colors.bg,
+          color: colors.text,
+          minHeight: "100vh",
+          padding: "2rem",
+        }}
+      >
+        詩が見つかりません。
+      </div>
+    );
+  }
 
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
-
-    let y = 20;
-
-    pdf.setFont("Times", "Normal");
-
-    // タイトル
-    pdf.setFontSize(22);
-    pdf.text(poem.title || "（無題）", 20, y);
-    y += 15;
-
-    // Emotion
-    pdf.setFontSize(12);
-    pdf.text(`Emotion: ${poem.emotion}`, 20, y);
-    y += 8;
-
-    // Tags
-    if (poem.tags && poem.tags.length > 0) {
-      pdf.text(`Tags: ${poem.tags.join(", ")}`, 20, y);
-      y += 10;
-    }
-
-    // 本文
-    pdf.setFontSize(14);
-    const textLines = pdf.splitTextToSize(poem.poem, 170);
-    pdf.text(textLines, 20, y);
-    y += textLines.length * 7 + 10;
-
-    // Score & Comment
-    pdf.setFontSize(12);
-    pdf.text(`Score: ${poem.score}`, 20, y);
-    y += 7;
-    pdf.text(`Comment:`, 20, y);
-    y += 7;
-
-    const commentLines = pdf.splitTextToSize(poem.comment, 170);
-    pdf.text(commentLines, 20, y);
-
-    pdf.save(`${poem.title || "poem"}.pdf`);
-
-    setLoading(false); // ★ PDF完成後にぐるぐる解除
-  };
-
-  // ---------------------------
-  //   表示
-  // ---------------------------
+  // ------------------------------
+  // 本文ページ
+  // ------------------------------
   return (
     <div
       style={{
-        minHeight: "100vh",
         background: colors.bg,
+        minHeight: "100vh",
         padding: "2rem",
-        fontFamily: "'YuMincho', serif",
         color: colors.text,
+        fontFamily: "'YuMincho', serif",
       }}
     >
+      {/* 戻る */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <Link
+          to="/"
+          style={{
+            color: colors.link,
+            textDecoration: "none",
+            fontSize: "1rem",
+            fontWeight: "600",
+          }}
+        >
+          ← 戻る
+        </Link>
+      </div>
+
+      {/* カード */}
       <div
         style={{
-          maxWidth: "720px",
+          maxWidth: "600px",
           margin: "0 auto",
-          background: colors.card,
-          borderRadius: "16px",
           padding: "2rem",
-          boxShadow: isDark
-            ? "0 4px 14px rgba(0,0,0,0.6)"
-            : "0 4px 14px rgba(0,0,0,0.12)",
+          background: colors.card,
+          borderRadius: "12px",
           border: `1px solid ${colors.border}`,
+          boxShadow: isDark
+            ? "0 4px 16px rgba(0,0,0,0.6)"
+            : "0 4px 16px rgba(0,0,0,0.15)",
+          color: colors.text,
         }}
       >
-        {/* タイトル */}
-        <h1 style={{ textAlign: "center", marginBottom: "1rem" }}>
-          {poem.title || "（無題）"}
-        </h1>
+        <h2
+          style={{
+            textAlign: "center",
+            marginBottom: "1rem",
+            lineHeight: "1.5",
+          }}
+        >
+          {poem.title}
+        </h2>
 
-        {/* Emotion */}
+        {/* スコア（バッジ風） */}
         <div
           style={{
             textAlign: "center",
             marginBottom: "1.2rem",
-            fontWeight: "600",
-            color: colors.emotion[poem.emotion] || colors.text,
           }}
         >
-          感情テーマ：{poem.emotion}
-        </div>
-
-        {/* Tags */}
-        {poem.tags && poem.tags.length > 0 && (
-          <div
+          <span
             style={{
-              display: "flex",
-              gap: "0.4rem",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              marginBottom: "1.2rem",
+              display: "inline-block",
+              padding: "0.3rem 0.8rem",
+              borderRadius: "12px",
+              background: isDark ? "#333" : "#e0e0e0",
+              border: `1px solid ${isDark ? "#555" : "#ccc"}`,
+              fontSize: "0.85rem",
+              fontWeight: "600",
             }}
           >
-            {poem.tags.map((tag, i) => (
-              <span
-                key={i}
-                style={{
-                  padding: "0.3rem 0.6rem",
-                  borderRadius: "6px",
-                  background: isDark ? "#444" : "#eee",
-                  fontSize: "0.9rem",
-                }}
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
+            Score：{poem.score ?? "-"}
+          </span>
+        </div>
 
         {/* 本文 */}
         <div
           style={{
             whiteSpace: "pre-wrap",
-            lineHeight: "1.9",
-            fontSize: "1.15rem",
-            marginBottom: "2rem",
+            fontSize: "1.1rem",
+            lineHeight: "1.8",
+            marginBottom: "1.5rem",
           }}
         >
           {poem.poem}
         </div>
 
-        {/* AIコメント / スコア */}
-        <div style={{ opacity: 0.8, marginBottom: "2rem" }}>
-          <div>📊 スコア：{poem.score}</div>
-          <div style={{ marginTop: "0.4rem" }}>💬 {poem.comment}</div>
+        {/* 補足情報 */}
+        <div style={{ fontSize: "0.9rem", opacity: 0.75 }}>
+          <div>Emotion: {poem.emotion}</div>
+          <div style={{ marginTop: "0.3rem" }}>
+            作成日時: {new Date(poem.created_at).toLocaleString()}
+          </div>
         </div>
 
-        {/* ボタン群 */}
+        {/* タグ（TagPill 使用） */}
         <div
           style={{
+            marginTop: "1.2rem",
             display: "flex",
-            justifyContent: "center",
-            gap: "1rem",
+            flexWrap: "wrap",
+            gap: "0.4rem",
           }}
         >
-          <button
-            onClick={() => navigate(`/edit/${poem.id}`)}
-            style={{
-              padding: "0.7rem 1.4rem",
-              borderRadius: "8px",
-              border: "none",
-              background: "#74b9ff",
-              color: "#fff",
-              fontWeight: "600",
-              cursor: "pointer",
-            }}
-          >
-            編集する
-          </button>
-
-          <button
-            onClick={() => navigate("/")}
-            style={{
-              padding: "0.7rem 1.4rem",
-              borderRadius: "8px",
-              border: "none",
-              background: "#b2bec3",
-              color: "#2d3436",
-              fontWeight: "600",
-              cursor: "pointer",
-            }}
-          >
-            一覧へ戻る
-          </button>
-
-          <button
-            onClick={generatePDF}
-            style={{
-              padding: "0.7rem 1.4rem",
-              borderRadius: "8px",
-              border: "none",
-              background: "#00b894",
-              color: "#fff",
-              fontWeight: "600",
-              cursor: "pointer",
-            }}
-          >
-            PDFにする
-          </button>
+          {(poem.tags || []).map((t, i) => (
+            <TagPill key={i} label={t} theme={theme} />
+          ))}
         </div>
       </div>
     </div>
