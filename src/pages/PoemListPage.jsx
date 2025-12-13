@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import supabase from "../supabaseClient";
-
+import { useNavigate } from "react-router-dom";
 import AuthButtons from "../components/AuthButtons";
 import SearchBar from "../components/SearchBar";
 import PoemCarousel from "../components/PoemCarousel";
@@ -40,6 +40,7 @@ export default function PoemListPage({ theme, setLoading }) {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const navigate = useNavigate();
 
   // -----------------------------------------------------
   // 認証セッション取得
@@ -166,13 +167,48 @@ export default function PoemListPage({ theme, setLoading }) {
         />
       )}
 
-      {/* ---------- Search ---------- */}
+     {/* ---------- Search + New (PC) ---------- */}
       {(!isMobile || showSearch) && (
-        <SearchBar
-          value={searchText}
-          onChange={setSearchText}
-          theme={safeTheme}
-        />
+        <div
+          style={{
+            display: "flex",
+            gap: "0.75rem",
+            alignItems: "center",
+            maxWidth: "720px",
+            margin: "0 auto 1.5rem",
+          }}
+        >
+          <SearchBar
+            value={searchText}
+            onChange={setSearchText}
+            theme={safeTheme}
+          />
+
+          {!isMobile && (
+            <button
+              onClick={() => {
+                setEditingPoem(null);
+                setIsFormOpen(true);
+              }}
+              aria-label="新しい詩を書く"
+              style={{
+                width: "46px",
+                height: "46px",
+                borderRadius: "50%",
+                border: "none",
+                background: isDark ? "#6c63ff" : "#4b5cff",
+                color: "#fff",
+                fontSize: "1.6rem",
+                fontWeight: "bold",
+                cursor: "pointer",
+                flexShrink: 0,
+                boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
+              }}
+            >
+              ＋
+            </button>
+          )}
+        </div>
       )}
 
       {/* ---------- Poem List ---------- */}

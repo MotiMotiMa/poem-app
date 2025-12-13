@@ -89,7 +89,7 @@ export default function FullscreenReader({
         ✕ 閉じる
       </button>
 
-      <div style={{ maxWidth: "650px", margin: "0 auto" }}>
+      <div style={{ maxWidth: "720px", margin: "0 auto" }}>
         {/* タイトル */}
         <h1
           style={{
