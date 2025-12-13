@@ -1,8 +1,9 @@
 // =======================================================
-// PoemForm.jsx（書き終わり検知 → 保存予告＋タイトル生成）
+// PoemForm.jsx（Portal対応・書き終わり検知 → 保存予告＋タイトル生成）
 // =======================================================
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 
 import PoemTextarea from "./PoemTextarea";
@@ -73,10 +74,7 @@ export default function PoemForm({
     }
 
     setShowSaveHint(false);
-
-    if (idleTimerRef.current) {
-      clearTimeout(idleTimerRef.current);
-    }
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
 
     idleTimerRef.current = setTimeout(() => {
       if (/[。．\n\s]$/.test(poem.trimEnd())) {
@@ -92,7 +90,6 @@ export default function PoemForm({
     if (!poem.trim()) return;
 
     setIsGeneratingTitle(true);
-
     try {
       const res = await fetch("/api/generate-title", {
         method: "POST",
@@ -101,8 +98,8 @@ export default function PoemForm({
       });
 
       if (!res.ok) throw new Error();
-
       const data = await res.json();
+
       setTitleCandidates(data.titles || []);
       setShowMeta(true);
     } catch {
@@ -118,7 +115,6 @@ export default function PoemForm({
       alert("投稿するにはログインが必要です");
       return;
     }
-
     if (!poem.trim()) {
       alert("本文が空です");
       return;
@@ -146,29 +142,26 @@ export default function PoemForm({
         return;
       }
 
-      if (!editingPoem) {
+      if (editingPoem) {
+        navigate("/");
+      } else {
         setTitle("");
         setPoem("");
         setEmotion("light");
         setTags("");
         setShowMeta(false);
         setTitleCandidates([]);
-      } else {
-        navigate("/");
       }
 
       if (onSaved) onSaved();
-    } catch (e) {
-      console.error(e);
-      alert("エラーが発生しました");
     } finally {
       setLoading(false);
       setFormDisabled(false);
     }
   };
 
-  // ---------------- JSX ----------------
-  return (
+  // ---------------- JSX（Portal） ----------------
+  return createPortal(
     <div
       style={{
         position: "fixed",
@@ -177,7 +170,7 @@ export default function PoemForm({
         color: palette.text,
         display: "flex",
         flexDirection: "column",
-        zIndex: 2000,
+        zIndex: 9999,
       }}
     >
       {/* Body */}
@@ -199,11 +192,7 @@ export default function PoemForm({
 
         {showMeta && (
           <div style={{ marginTop: "1.5rem" }}>
-            <TitleInput
-              value={title}
-              onChange={setTitle}
-              palette={palette}
-            />
+            <TitleInput value={title} onChange={setTitle} palette={palette} />
 
             {titleCandidates.length > 0 && (
               <div style={{ marginTop: "0.75rem" }}>
@@ -235,11 +224,7 @@ export default function PoemForm({
               palette={palette}
             />
 
-            <TagsInput
-              value={tags}
-              onChange={setTags}
-              palette={palette}
-            />
+            <TagsInput value={tags} onChange={setTags} palette={palette} />
           </div>
         )}
       </div>
@@ -253,19 +238,15 @@ export default function PoemForm({
             left: "50%",
             transform: "translateX(-50%)",
             background: palette.bg2,
-            color: palette.text,
             padding: "0.6rem 1rem",
             borderRadius: "16px",
             fontSize: "0.85rem",
             boxShadow: `0 6px 18px ${palette.shadow}`,
             display: "flex",
-            alignItems: "center",
             gap: "0.75rem",
           }}
         >
-          <span style={{ opacity: 0.85 }}>
-            ひと区切りつきました
-          </span>
+          <span>ひと区切りつきました</span>
           <button
             onClick={generateTitle}
             disabled={isGeneratingTitle}
@@ -273,9 +254,7 @@ export default function PoemForm({
               background: "none",
               border: "none",
               color: palette.primary,
-              fontSize: "0.85rem",
               textDecoration: "underline",
-              opacity: isGeneratingTitle ? 0.5 : 1,
             }}
           >
             タイトル生成
@@ -283,7 +262,7 @@ export default function PoemForm({
         </div>
       )}
 
-      {/* Floating Bottom Bar（保存） */}
+      {/* Floating Bottom Bar */}
       <div
         style={{
           position: "fixed",
@@ -294,25 +273,20 @@ export default function PoemForm({
           background: palette.bg2,
           borderRadius: "18px",
           border: `1px solid ${palette.border}`,
-          boxShadow: `
-            0 12px 28px rgba(0,0,0,0.35),
-            0 4px 10px rgba(0,0,0,0.25)
-          `,
-          display: "flex",
-          zIndex: 3000,
+          boxShadow:
+            "0 12px 28px rgba(0,0,0,0.35), 0 4px 10px rgba(0,0,0,0.25)",
         }}
       >
         <button
           onClick={handleSave}
           disabled={formDisabled || !user}
           style={{
-            flex: 1,
+            width: "100%",
             border: "none",
             borderRadius: "14px",
             background: palette.main,
             color: "#fff",
             fontWeight: "bold",
-            fontSize: "0.95rem",
             padding: "0.7rem",
             opacity: formDisabled || !user ? 0.5 : 1,
           }}
@@ -320,6 +294,7 @@ export default function PoemForm({
           {editingPoem ? "更新する" : "保存する"}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
