@@ -205,23 +205,8 @@ export default function PoemForm({
               palette={palette}
             />
 
-            <EmotionSelect
-              value={emotion}
-              onChange={setEmotion}
-              palette={palette}
-            />
-
-            <TagsInput
-              value={tags}
-              onChange={setTags}
-              palette={palette}
-            />
-
             {titleCandidates.length > 0 && (
-              <div style={{ marginTop: "1rem" }}>
-                <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
-                  AIタイトル候補
-                </div>
+              <div style={{ marginTop: "0.75rem" }}>
                 {titleCandidates.map((t, i) => (
                   <button
                     key={i}
@@ -229,9 +214,9 @@ export default function PoemForm({
                     style={{
                       display: "block",
                       width: "100%",
-                      marginTop: "0.4rem",
                       padding: "0.6rem",
-                      borderRadius: "8px",
+                      marginBottom: "0.4rem",
+                      borderRadius: "10px",
                       border: "none",
                       background: palette.bg2,
                       color: palette.text,
@@ -243,6 +228,18 @@ export default function PoemForm({
                 ))}
               </div>
             )}
+
+            <EmotionSelect
+              value={emotion}
+              onChange={setEmotion}
+              palette={palette}
+            />
+
+            <TagsInput
+              value={tags}
+              onChange={setTags}
+              palette={palette}
+            />
           </div>
         )}
       </div>
