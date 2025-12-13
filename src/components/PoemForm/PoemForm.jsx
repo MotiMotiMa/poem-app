@@ -283,7 +283,7 @@ export default function PoemForm({
         </div>
       )}
 
-      {/* Floating Bottom Bar（保存のみ） */}
+      {/* Floating Bottom Bar（保存） */}
       <div
         style={{
           position: "fixed",
