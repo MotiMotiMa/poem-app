@@ -1,21 +1,21 @@
 // =======================================================
-// EditPage.jsx（API統合・theme完全対応・軽量版）
+// EditPage.jsx（スマホ最適化・loading一元化・完成版）
 // =======================================================
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
 import PoemForm from "../components/PoemForm/PoemForm";
-import { loadPoem, savePoem } from "../supabase/poemApi";
+import { loadPoem } from "../supabase/poemApi";
 
 export default function EditPage({ theme, setLoading }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [poem, setPoem] = useState(null);
-  const [pageLoading, setPageLoading] = useState(true);
 
   const isDark = theme === "dark";
+  const isMobile = window.innerWidth <= 768;
 
   const colors = {
     bg: isDark ? "#1c1c1c" : "#f5f5f5",
@@ -26,72 +26,21 @@ export default function EditPage({ theme, setLoading }) {
   };
 
   // ----------------------------------------------------
-  // 詩データ読み込み（API）
+  // 詩データ読み込み（親loading使用）
   // ----------------------------------------------------
   useEffect(() => {
     async function fetch() {
-      setPageLoading(true);
-
-      const loaded = await loadPoem(id);
-      setPoem(loaded);
-
-      setPageLoading(false);
+      setLoading(true);
+      try {
+        const loaded = await loadPoem(id);
+        setPoem(loaded);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetch();
-  }, [id]);
-
-  // ----------------------------------------------------
-  // 保存処理（API 呼び出し）
-  // ----------------------------------------------------
-  const handleSave = async (data) => {
-    setLoading(true);
-
-    await savePoem(id, data);
-
-    setLoading(false);
-    navigate("/");
-  };
-
-  // ----------------------------------------------------
-  // ページロード中
-  // ----------------------------------------------------
-  if (pageLoading) {
-    return (
-      <div
-        style={{
-          width: "100vw",
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          background: colors.bg,
-          color: colors.text,
-          fontFamily: "sans-serif",
-        }}
-      >
-        <div
-          style={{
-            width: "60px",
-            height: "60px",
-            border: "6px solid #888",
-            borderTop: "6px solid #3498db",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-          }}
-        />
-
-        <style>
-          {`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}
-        </style>
-      </div>
-    );
-  }
+  }, [id, setLoading]);
 
   // ----------------------------------------------------
   // データなし
@@ -100,7 +49,7 @@ export default function EditPage({ theme, setLoading }) {
     return (
       <div
         style={{
-          padding: "2rem",
+          padding: isMobile ? "1rem" : "2rem",
           color: colors.text,
           background: colors.bg,
           minHeight: "100vh",
@@ -119,31 +68,32 @@ export default function EditPage({ theme, setLoading }) {
       style={{
         background: colors.bg,
         minHeight: "100vh",
-        padding: "2rem",
+        padding: isMobile ? "1rem" : "2rem",
         transition: "0.3s ease",
       }}
     >
-      {/* 戻るリンク */}
-      <div style={{ marginBottom: "1.5rem" }}>
+      {/* 戻る */}
+      <div style={{ marginBottom: isMobile ? "1rem" : "1.5rem" }}>
         <Link
           to="/"
           style={{
             color: colors.link,
             textDecoration: "none",
             fontWeight: "600",
+            fontSize: "1rem",
           }}
         >
           ← 戻る
         </Link>
       </div>
 
-      {/* カード中央 */}
+      {/* 編集カード */}
       <div
         style={{
-          maxWidth: "500px",
+          maxWidth: isMobile ? "100%" : "500px",
           margin: "0 auto",
           background: colors.card,
-          padding: "2rem",
+          padding: isMobile ? "1.2rem" : "2rem",
           borderRadius: "12px",
           border: `1px solid ${colors.border}`,
           boxShadow: isDark
@@ -155,8 +105,9 @@ export default function EditPage({ theme, setLoading }) {
           style={{
             textAlign: "center",
             color: colors.text,
-            marginBottom: "1.5rem",
+            marginBottom: isMobile ? "1rem" : "1.5rem",
             fontFamily: "'YuMincho', serif",
+            fontSize: isMobile ? "1.2rem" : "1.4rem",
           }}
         >
           ✏️ 詩の編集

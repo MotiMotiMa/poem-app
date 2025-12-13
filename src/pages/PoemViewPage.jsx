@@ -1,5 +1,5 @@
 // =======================================================
-// PoemViewPage.jsx（TagPill対応・theme完全対応）
+// PoemViewPage.jsx（スマホ最適化・loading一元化・完成版）
 // =======================================================
 
 import { useEffect, useState } from "react";
@@ -7,12 +7,12 @@ import { useParams, Link } from "react-router-dom";
 import supabase from "../supabaseClient";
 import TagPill from "../components/TagPill";
 
-export default function PoemViewPage({ theme }) {
+export default function PoemViewPage({ theme, setLoading }) {
   const { id } = useParams();
   const [poem, setPoem] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   const isDark = theme === "dark";
+  const isMobile = window.innerWidth <= 768;
 
   const colors = {
     bg: isDark ? "#1d1d1d" : "#f4f4f4",
@@ -22,48 +22,35 @@ export default function PoemViewPage({ theme }) {
     link: isDark ? "#81c7ff" : "#1e88e5",
   };
 
-  // ------------------------------
-  // 詩を取得
-  // ------------------------------
+  // ----------------------------------------------------
+  // 詩を取得（App.js の loading を使用）
+  // ----------------------------------------------------
   useEffect(() => {
     async function load() {
       setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("poems")
+          .select("*")
+          .eq("id", id)
+          .single();
 
-      const { data } = await supabase
-        .from("poems")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      setPoem(data);
-      setLoading(false);
+        if (!error) {
+          setPoem(data);
+        } else {
+          setPoem(null);
+        }
+      } finally {
+        setLoading(false);
+      }
     }
 
     load();
-  }, [id]);
+  }, [id, setLoading]);
 
-  // ------------------------------
-  // ローディング
-  // ------------------------------
-  if (loading) {
-    return (
-      <div
-        style={{
-          background: colors.bg,
-          color: colors.text,
-          width: "100vw",
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          fontSize: "1.2rem",
-        }}
-      >
-        読み込み中…
-      </div>
-    );
-  }
-
+  // ----------------------------------------------------
+  // データなし
+  // ----------------------------------------------------
   if (!poem) {
     return (
       <div
@@ -71,7 +58,7 @@ export default function PoemViewPage({ theme }) {
           background: colors.bg,
           color: colors.text,
           minHeight: "100vh",
-          padding: "2rem",
+          padding: isMobile ? "1rem" : "2rem",
         }}
       >
         詩が見つかりません。
@@ -79,21 +66,21 @@ export default function PoemViewPage({ theme }) {
     );
   }
 
-  // ------------------------------
-  // 本文ページ
-  // ------------------------------
+  // ----------------------------------------------------
+  // 表示
+  // ----------------------------------------------------
   return (
     <div
       style={{
         background: colors.bg,
         minHeight: "100vh",
-        padding: "2rem",
+        padding: isMobile ? "1rem" : "2rem",
         color: colors.text,
         fontFamily: "'YuMincho', serif",
       }}
     >
       {/* 戻る */}
-      <div style={{ marginBottom: "1.5rem" }}>
+      <div style={{ marginBottom: isMobile ? "1rem" : "1.5rem" }}>
         <Link
           to="/"
           style={{
@@ -110,9 +97,9 @@ export default function PoemViewPage({ theme }) {
       {/* カード */}
       <div
         style={{
-          maxWidth: "600px",
+          maxWidth: isMobile ? "100%" : "600px",
           margin: "0 auto",
-          padding: "2rem",
+          padding: isMobile ? "1.2rem" : "2rem",
           background: colors.card,
           borderRadius: "12px",
           border: `1px solid ${colors.border}`,
@@ -122,23 +109,20 @@ export default function PoemViewPage({ theme }) {
           color: colors.text,
         }}
       >
+        {/* タイトル */}
         <h2
           style={{
             textAlign: "center",
             marginBottom: "1rem",
             lineHeight: "1.5",
+            fontSize: isMobile ? "1.2rem" : "1.4rem",
           }}
         >
           {poem.title}
         </h2>
 
-        {/* スコア（バッジ風） */}
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: "1.2rem",
-          }}
-        >
+        {/* スコア */}
+        <div style={{ textAlign: "center", marginBottom: "1.2rem" }}>
           <span
             style={{
               display: "inline-block",
@@ -158,8 +142,8 @@ export default function PoemViewPage({ theme }) {
         <div
           style={{
             whiteSpace: "pre-wrap",
-            fontSize: "1.1rem",
-            lineHeight: "1.8",
+            fontSize: isMobile ? "1.05rem" : "1.1rem",
+            lineHeight: isMobile ? "1.9" : "1.8",
             marginBottom: "1.5rem",
           }}
         >
@@ -174,7 +158,7 @@ export default function PoemViewPage({ theme }) {
           </div>
         </div>
 
-        {/* タグ（TagPill 使用） */}
+        {/* タグ */}
         <div
           style={{
             marginTop: "1.2rem",

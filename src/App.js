@@ -1,5 +1,5 @@
 // ===============================================
-// App.js（OSテーマ自動追従 + Router削除版 完全版）
+// App.js（OSテーマ自動追従 + Router管理 + Loading一元化）
 // ===============================================
 import { Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -23,7 +23,7 @@ function App() {
   );
 
   // -----------------------------------------------
-  // OS のテーマ変更（light ↔ dark）をリアルタイム検知
+  // OS のテーマ変更をリアルタイム検知
   // -----------------------------------------------
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -33,14 +33,9 @@ function App() {
     };
 
     mq.addEventListener("change", handler);
-
-    // クリーンアップ
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // -----------------------------------------------
-  // 現在のモードに対応したテーマオブジェクトを生成
-  // -----------------------------------------------
   const theme = getTheme(mode);
 
   return (
@@ -52,8 +47,40 @@ function App() {
         transition: "background 0.3s ease, color 0.3s ease",
       }}
     >
-      {/* ローディングUI（そのまま） */}
+      {/* ======================================
+          Loading Overlay（親一元管理）
+         ====================================== */}
+      {loading && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            backdropFilter: "blur(2px)",
+          }}
+        >
+          <div
+            style={{
+              padding: "1rem 1.5rem",
+              borderRadius: "12px",
+              background: theme.bg,
+              color: theme.text,
+              fontSize: "0.95rem",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+            }}
+          >
+            処理中…
+          </div>
+        </div>
+      )}
 
+      {/* ======================================
+          Routes
+         ====================================== */}
       <Routes>
         <Route
           path="/"

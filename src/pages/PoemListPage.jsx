@@ -1,5 +1,9 @@
 // =======================================================
-// PoemListPage.jsx（theme + auth + 投稿制御・最終安定版）
+// PoemListPage.jsx（スマホ最適化・完成版）
+// - モバイルファースト
+// - PoemFormはモード制御
+// - 固定＋ボトム投稿ボタン
+// - 無限ローディング事故防止
 // =======================================================
 
 import { useState, useEffect, useMemo } from "react";
@@ -11,19 +15,20 @@ import PoemCarousel from "../components/PoemCarousel";
 import FullscreenReader from "../components/FullscreenReader";
 import PoemForm from "../components/PoemForm/PoemForm";
 
-import {
-  loadPoemList,
-  deletePoem,
-} from "../supabase/poemApi";
+import { loadPoemList, deletePoem } from "../supabase/poemApi";
 
 export default function PoemListPage({ theme, setLoading }) {
-  // ---------- theme 安全化 ----------
+  // ---------- theme ----------
   const safeTheme = theme || "light";
   const isDark = safeTheme === "dark";
 
   const bgColor = isDark ? "#121212" : "#fafafa";
   const textColor = isDark ? "#f1f1f1" : "#111";
 
+  // ---------- device ----------
+  const isMobile = window.innerWidth < 768;
+
+  // ---------- state ----------
   const [user, setUser] = useState(null);
   const [poems, setPoems] = useState([]);
 
@@ -33,14 +38,16 @@ export default function PoemListPage({ theme, setLoading }) {
   const [searchText, setSearchText] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
 
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+
   // -----------------------------------------------------
-  // 認証セッション取得（確定版）
+  // 認証セッション取得
   // -----------------------------------------------------
   useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getSession();
       setUser(data.session?.user ?? null);
-      console.log("LOGIN USER ID（確定）:", data.session?.user?.id);
     };
     init();
 
@@ -48,18 +55,22 @@ export default function PoemListPage({ theme, setLoading }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      console.log("LOGIN USER ID（確定）:", session?.user?.id);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   // -----------------------------------------------------
-  // 詩一覧取得（1か所のみ）
+  // 詩一覧取得
   // -----------------------------------------------------
   const fetchPoems = async () => {
-    const list = await loadPoemList("desc");
-    setPoems(list);
+    try {
+      setLoading(true);
+      const list = await loadPoemList("desc");
+      setPoems(list);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -70,14 +81,13 @@ export default function PoemListPage({ theme, setLoading }) {
   // 保存後
   // -----------------------------------------------------
   const handleSave = async () => {
-    setLoading(true);
     await fetchPoems();
     setEditingPoem(null);
-    setLoading(false);
+    setIsFormOpen(false);
   };
 
   // -----------------------------------------------------
-  // 削除（ログイン必須）
+  // 削除
   // -----------------------------------------------------
   const handleDelete = async (id) => {
     if (!user) {
@@ -87,13 +97,13 @@ export default function PoemListPage({ theme, setLoading }) {
 
     if (!window.confirm("本当に削除しますか？")) return;
 
-    setLoading(true);
-    const ok = await deletePoem(id);
-    await fetchPoems();
-    setLoading(false);
-
-    if (!ok) {
-      alert("削除できませんでした");
+    try {
+      setLoading(true);
+      const ok = await deletePoem(id);
+      if (!ok) alert("削除できませんでした");
+      await fetchPoems();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -123,14 +133,15 @@ export default function PoemListPage({ theme, setLoading }) {
     <div
       style={{
         fontFamily: "sans-serif",
-        padding: "2rem",
+        padding: isMobile ? "0.75rem" : "2rem",
         backgroundColor: bgColor,
         minHeight: "100vh",
         color: textColor,
       }}
     >
-      <h1 style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-        🌈 詩作成システム（読書モード）
+      {/* ---------- Header ---------- */}
+      <h1 style={{ textAlign: "center", marginBottom: "1rem" }}>
+        🌈 詩作成システム
       </h1>
 
       <AuthButtons
@@ -138,39 +149,47 @@ export default function PoemListPage({ theme, setLoading }) {
         onLogin={() =>
           supabase.auth.signInWithOAuth({
             provider: "google",
-            options: {
-              redirectTo: window.location.origin,
-            },
+            options: { redirectTo: window.location.origin },
           })
         }
         onLogout={() => supabase.auth.signOut()}
       />
 
-      {/* 投稿フォーム */}
-      <PoemForm
-        poemId={editingPoem?.id || null}
-        theme={safeTheme}
-        user={user}
-        setLoading={setLoading}
-        onSaved={handleSave}
-      />
+      {/* ---------- Form（モード制御） ---------- */}
+      {isFormOpen && (
+        <PoemForm
+          poemId={editingPoem?.id || null}
+          theme={safeTheme}
+          user={user}
+          setLoading={setLoading}
+          onSaved={handleSave}
+        />
+      )}
 
-      <SearchBar
-        value={searchText}
-        onChange={setSearchText}
-        theme={safeTheme}
-      />
+      {/* ---------- Search ---------- */}
+      {(!isMobile || showSearch) && (
+        <SearchBar
+          value={searchText}
+          onChange={setSearchText}
+          theme={safeTheme}
+        />
+      )}
 
+      {/* ---------- Poem List ---------- */}
       <PoemCarousel
         poems={filteredPoems}
         user={user}
-        onEdit={(p) => setEditingPoem(p)}
+        onEdit={(p) => {
+          setEditingPoem(p);
+          setIsFormOpen(true);
+        }}
         onDelete={handleDelete}
         onTagClick={setSelectedTag}
         onRead={(p) => setReadingPoem(p)}
         theme={safeTheme}
       />
 
+      {/* ---------- Reader ---------- */}
       {readingPoem && (
         <FullscreenReader
           poem={readingPoem}
@@ -178,6 +197,51 @@ export default function PoemListPage({ theme, setLoading }) {
           onTagClick={setSelectedTag}
           theme={safeTheme}
         />
+      )}
+
+      {/* ---------- Mobile FAB ---------- */}
+      {isMobile && !isFormOpen && (
+        <button
+          onClick={() => {
+            setEditingPoem(null);
+            setIsFormOpen(true);
+          }}
+          style={{
+            position: "fixed",
+            bottom: "1rem",
+            right: "1rem",
+            width: "56px",
+            height: "56px",
+            borderRadius: "50%",
+            fontSize: "28px",
+            border: "none",
+            background: "#ff6b6b",
+            color: "#fff",
+            zIndex: 1000,
+          }}
+        >
+          ＋
+        </button>
+      )}
+
+      {/* ---------- Mobile Search Toggle ---------- */}
+      {isMobile && (
+        <button
+          onClick={() => setShowSearch((v) => !v)}
+          style={{
+            position: "fixed",
+            bottom: "1rem",
+            left: "1rem",
+            padding: "0.6rem 0.9rem",
+            borderRadius: "20px",
+            border: "none",
+            background: isDark ? "#333" : "#ddd",
+            color: textColor,
+            zIndex: 1000,
+          }}
+        >
+          検索
+        </button>
       )}
     </div>
   );
