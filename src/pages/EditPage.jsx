@@ -1,5 +1,5 @@
 // =======================================================
-// EditPage.jsx（user確定待ち対応・完成版）
+// EditPage.jsx（user確定待ち・副作用分離 完成版）
 // =======================================================
 
 import { useParams, useNavigate } from "react-router-dom";
@@ -11,7 +11,7 @@ export default function EditPage({ theme, setLoading }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [user, setUser] = useState(undefined); // ★ nullではなく undefined
+  const [user, setUser] = useState(undefined); // undefined = 未確定
 
   useEffect(() => {
     const init = async () => {
@@ -21,28 +21,26 @@ export default function EditPage({ theme, setLoading }) {
     init();
   }, []);
 
-  // ----------------------------------
-  // user確定待ち（ここが肝）
-  // ----------------------------------
-  if (user === undefined) {
-    return null; // or ローディング表示
-  }
+  // ★ 未ログイン時のリダイレクトは副作用で
+  useEffect(() => {
+    if (user === null) {
+      alert("ログインが必要です");
+      navigate("/");
+    }
+  }, [user, navigate]);
 
-  // 未ログインなら弾く（任意）
-  if (user === null) {
-    alert("ログインが必要です");
-    navigate("/");
-    return null;
-  }
-
-  return (
-    <PoemForm
+  // user 未確定 or 未ログイン中は何も描画しない
+  if (user !== undefined && user !== null) {
+    return (
+      <PoemForm
         poemId={id}
         theme={theme}
         user={user}
         setLoading={setLoading}
         onSaved={() => navigate("/")}
       />
+    );
+  }
 
-  );
+  return null;
 }
