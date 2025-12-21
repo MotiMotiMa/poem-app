@@ -4,7 +4,7 @@
 // - PoemFormはモード制御
 // - 固定＋ボトム投稿ボタン
 // - 無限ローディング事故防止
-// - タイトル確定で700ms後にPoemFormをクローズ
+// - 保存完了時のみ PoemForm をクローズ
 // - 一覧復帰時、該当詩カードを一瞬だけハイライト
 // - 一覧復帰時のスクロール位置復元（sessionStorage）
 // =======================================================
@@ -55,12 +55,8 @@ export default function PoemListPage({ theme, setLoading }) {
   // -----------------------------------------------------
   useEffect(() => {
     const saveScroll = () => {
-      sessionStorage.setItem(
-        SCROLL_KEY,
-        String(window.scrollY)
-      );
+      sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
     };
-
     window.addEventListener("scroll", saveScroll, { passive: true });
     return () => window.removeEventListener("scroll", saveScroll);
   }, []);
@@ -71,7 +67,6 @@ export default function PoemListPage({ theme, setLoading }) {
   useEffect(() => {
     const y = sessionStorage.getItem(SCROLL_KEY);
     if (!y) return;
-
     requestAnimationFrame(() => {
       window.scrollTo(0, Number(y));
     });
@@ -81,20 +76,23 @@ export default function PoemListPage({ theme, setLoading }) {
   // 認証セッション取得
   // -----------------------------------------------------
   useEffect(() => {
-    const init = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user ?? null);
-    };
-    init();
+      const init = async () => {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error) {
+          setUser(data.user);
+        }
+      };
+      init();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+      });
 
-    return () => subscription.unsubscribe();
-  }, []);
+      return () => subscription.unsubscribe();
+    }, []);
+
 
   // -----------------------------------------------------
   // 詩一覧取得
@@ -113,14 +111,12 @@ export default function PoemListPage({ theme, setLoading }) {
     fetchPoems();
   }, []);
 
- 
   // -----------------------------------------------------
-  // 保存後（★ここが唯一の完了トリガー）
+  // 保存後（★唯一の完了トリガー）
   // -----------------------------------------------------
   const handleSave = async () => {
     await fetchPoems();
 
-    // 編集 or 新規保存した詩をハイライト
     if (editingPoem?.id) {
       setHighlightPoemId(editingPoem.id);
     }
@@ -137,7 +133,6 @@ export default function PoemListPage({ theme, setLoading }) {
       alert("ログインしてください");
       return;
     }
-
     if (!window.confirm("本当に削除しますか？")) return;
 
     try {
@@ -149,29 +144,6 @@ export default function PoemListPage({ theme, setLoading }) {
       setLoading(false);
     }
   };
-
-  // -----------------------------------------------------
-  // PC用：PoemFormカードラッパー
-  // -----------------------------------------------------
-  function PoemFormCard({ children }) {
-    return (
-      <div
-        style={{
-          maxWidth: "720px",
-          margin: "2rem auto",
-          padding: "1.5rem",
-          background: "#ffffff",
-          borderRadius: "18px",
-          boxShadow: `
-            0 10px 30px rgba(0,0,0,0.15),
-            0 4px 10px rgba(0,0,0,0.08)
-          `,
-        }}
-      >
-        {children}
-      </div>
-    );
-  }
 
   // -----------------------------------------------------
   // 検索 & タグフィルタ
@@ -192,24 +164,21 @@ export default function PoemListPage({ theme, setLoading }) {
     });
   }, [poems, searchText, selectedTag]);
 
-// -----------------------------------------------------
-// ハイライト詩を中央へスクロール
-// -----------------------------------------------------
-useEffect(() => {
-  if (!highlightPoemId) return;
-
-  // DOM が確実に描画されてから動かす
-  requestAnimationFrame(() => {
-    const el = document.getElementById(`poem-${highlightPoemId}`);
-    if (!el) return;
-
-    el.scrollIntoView({
-      behavior: "smooth",
-      inline: "center",   // 横カルーセルの中心
-      block: "nearest",
+  // -----------------------------------------------------
+  // ハイライト詩を中央へスクロール
+  // -----------------------------------------------------
+  useEffect(() => {
+    if (!highlightPoemId) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`poem-${highlightPoemId}`);
+      if (!el) return;
+      el.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
     });
-  });
-}, [highlightPoemId, filteredPoems]);
+  }, [highlightPoemId, filteredPoems]);
 
   // -----------------------------------------------------
   // JSX
@@ -228,83 +197,17 @@ useEffect(() => {
         🌈 詩作成システム
       </h1>
 
-      <AuthButtons
-        user={user}
-        onLogin={() =>
-          supabase.auth.signInWithOAuth({
-            provider: "google",
-            options: { redirectTo: window.location.origin },
-          })
-        }
-        onLogout={() => supabase.auth.signOut()}
-      />
+      <AuthButtons user={user} />
 
-      {isFormOpen &&
-        (isMobile ? (
-          <PoemForm
-            poemId={editingPoem?.id || null}
-            theme={safeTheme}
-            user={user}
-            setLoading={setLoading}
-            onSaved={handleSave}
-           onTitleConfirmed={() => {
-            // 何もしない or 軽い視覚効果のみ
-            }}
-          />
-        ) : (
-          <PoemFormCard>
-            <PoemForm
-              poemId={editingPoem?.id || null}
-              theme={safeTheme}
-              user={user}
-              setLoading={setLoading}
-              onSaved={handleSave}
-              onTitleConfirmed={(poemId) => {
-               // タイトル確定はUI補助のみ（閉じない
-              }}
-            />
-          </PoemFormCard>
-        ))}
-
-      {(!isMobile || showSearch) && (
-        <div
-          style={{
-            display: "flex",
-            gap: "0.75rem",
-            alignItems: "center",
-            maxWidth: "720px",
-            margin: "0 auto 1.5rem",
-          }}
-        >
-          <SearchBar
-            value={searchText}
-            onChange={setSearchText}
-            theme={safeTheme}
-          />
-
-          {!isMobile && (
-            <button
-              onClick={() => {
-                setEditingPoem(null);
-                setIsFormOpen(true);
-              }}
-              style={{
-                width: "46px",
-                height: "46px",
-                borderRadius: "50%",
-                border: "none",
-                background: isDark ? "#6c63ff" : "#4b5cff",
-                color: "#fff",
-                fontSize: "1.6rem",
-                fontWeight: "bold",
-                cursor: "pointer",
-                boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
-              }}
-            >
-              ＋
-            </button>
-          )}
-        </div>
+      {isFormOpen && (
+        <PoemForm
+          poemId={editingPoem?.id || null}
+          theme={safeTheme}
+          user={user}
+          setLoading={setLoading}
+          onSaved={handleSave}
+          onTitleConfirmed={() => {}}
+        />
       )}
 
       <PoemCarousel
@@ -348,25 +251,6 @@ useEffect(() => {
           }}
         >
           ＋
-        </button>
-      )}
-
-      {isMobile && (
-        <button
-          onClick={() => setShowSearch((v) => !v)}
-          style={{
-            position: "fixed",
-            bottom: "1rem",
-            left: "1rem",
-            padding: "0.6rem 0.9rem",
-            borderRadius: "20px",
-            border: "none",
-            background: isDark ? "#333" : "#ddd",
-            color: textColor,
-            zIndex: 1000,
-          }}
-        >
-          検索
         </button>
       )}
     </div>
