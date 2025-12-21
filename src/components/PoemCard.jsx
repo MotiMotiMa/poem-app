@@ -1,23 +1,36 @@
 // ========================================================
-// PoemCard.jsx（最終安定版）
-// - 表示専用
-// - owner 判定は外部で完結
+// PoemCard.jsx（highlight対応・最終安定版）
 // ========================================================
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
 import TagPill from "./TagPill";
 
 export default function PoemCard({
   poem,
-  onEdit,     // 自分の詩のときだけ渡される
-  onDelete,   // 自分の詩のときだけ渡される
+  isHighlight = false,   // ← 追加
+  onEdit,
+  onDelete,
   onTagClick,
   onRead,
   theme,
 }) {
   const safeTheme = theme || "light";
   const isDark = safeTheme === "dark";
+
+  const [highlight, setHighlight] = useState(isHighlight);
+
+  // -------------------------
+  // ハイライト自動解除
+  // -------------------------
+  useEffect(() => {
+    if (!isHighlight) return;
+    setHighlight(true);
+    const t = setTimeout(() => {
+      setHighlight(false);
+    }, 1100); // 0.8〜1.2秒の中間
+    return () => clearTimeout(t);
+  }, [isHighlight]);
 
   const emotionBg = {
     warm: isDark
@@ -68,12 +81,18 @@ export default function PoemCard({
         color: colors.text,
         fontFamily: "'YuMincho', serif",
         background: bg,
-        boxShadow: isDark
-          ? "0 4px 18px rgba(0,0,0,0.55)"
-          : "0 4px 14px rgba(0,0,0,0.12)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
+        transition: "all 0.9s ease",
+        transform: highlight ? "translateY(-6px)" : "none",
+        boxShadow: highlight
+          ? isDark
+            ? "0 14px 32px rgba(0,0,0,0.75)"
+            : "0 14px 32px rgba(0,0,0,0.22)"
+          : isDark
+          ? "0 4px 18px rgba(0,0,0,0.55)"
+          : "0 4px 14px rgba(0,0,0,0.12)",
       }}
     >
       {/* タイトル */}

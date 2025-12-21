@@ -44,8 +44,9 @@ export default function PoemForm({ onSave, editingPoem, titleCandidates }) {
       {!editingPoem && (
         <TitleCandidates
           titleCandidates={titleCandidates}
-          onPick={(v) => setTitle(v)}
+          onPick={handlePickTitle}
           colors={colors}
+          emotion={poem?.emotion || "light"}
         />
       )}
 

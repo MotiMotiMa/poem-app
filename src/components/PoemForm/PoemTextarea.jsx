@@ -5,13 +5,15 @@
 // - 現在行ハイライト
 // - 行末フェードアウト（視線誘導）
 // - IME / iOS 安全
+// - 「貼り付けました」検知（onPaste）
+// - 高さ自動調整の伸び縮み揺れを停止（useLayoutEffect + 差分更新）
 // =======================================================
 
 import React, {
   useRef,
-  useEffect,
   useMemo,
   useState,
+  useLayoutEffect,
 } from "react";
 
 export default function PoemTextarea({
@@ -20,15 +22,18 @@ export default function PoemTextarea({
   palette,
   autoFocus,
   poetMode = false,
+  onPasteDetected,
 }) {
   const textareaRef = useRef(null);
   const composingRef = useRef(false);
+  const lastHeightRef = useRef(0);
+  const rafRef = useRef(null);
 
   const [currentLine, setCurrentLine] = useState(1);
 
   // 行配列
   const lines = useMemo(() => {
-    const count = value.split("\n").length;
+    const count = (value || "").split("\n").length;
     return Array.from({ length: count }, (_, i) => i + 1);
   }, [value]);
 
@@ -42,14 +47,49 @@ export default function PoemTextarea({
     setCurrentLine(before.split("\n").length);
   };
 
-  // 高さ自動調整（IME中は除外）
-  useEffect(() => {
+  // 高さ自動調整（揺れ止め）
+  useLayoutEffect(() => {
     const el = textareaRef.current;
-    if (!el || composingRef.current) return;
+    if (!el) return;
+    if (composingRef.current) return;
 
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    const apply = () => {
+      // まず縮める（autoより安定）
+      el.style.height = "0px";
+
+      // scrollHeight を読む
+      const next = el.scrollHeight;
+
+      // 1〜2pxの誤差揺れは無視（ここがキモ）
+      if (Math.abs(next - lastHeightRef.current) >= 2) {
+        el.style.height = `${next}px`;
+        lastHeightRef.current = next;
+      } else {
+        // ほぼ同じなら前回値を維持
+        if (lastHeightRef.current > 0) {
+          el.style.height = `${lastHeightRef.current}px`;
+        } else {
+          el.style.height = `${next}px`;
+          lastHeightRef.current = next;
+        }
+      }
+    };
+
+    // すぐ1回
+    apply();
+
+    // フォント反映など“後から変わる”のを1フレーム拾って確定
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(apply);
+
+    return () => cancelAnimationFrame(rafRef.current);
   }, [value]);
+
+  // 貼り付け検知（preventDefaultしない）
+  const handlePaste = () => {
+    onPasteDetected?.();
+    setTimeout(() => updateCurrentLine(), 0);
+  };
 
   return (
     <div
@@ -112,11 +152,7 @@ export default function PoemTextarea({
               right: 0,
               width: "30%",
               height: "100%",
-              background: `linear-gradient(
-                to right,
-                rgba(0,0,0,0),
-                ${palette.bg} 70%
-              )`,
+              background: `linear-gradient(to right, rgba(0,0,0,0), ${palette.bg} 70%)`,
               pointerEvents: "none",
               zIndex: 1,
             }}
@@ -128,6 +164,7 @@ export default function PoemTextarea({
           value={value}
           autoFocus={autoFocus}
           onChange={(e) => onChange(e.target.value)}
+          onPaste={handlePaste}
           onClick={updateCurrentLine}
           onKeyUp={updateCurrentLine}
           onFocus={updateCurrentLine}
@@ -167,6 +204,10 @@ export default function PoemTextarea({
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
             WebkitOverflowScrolling: "touch",
+
+            WebkitUserSelect: "text",
+            userSelect: "text",
+            WebkitTouchCallout: "default",
 
             zIndex: 2,
           }}

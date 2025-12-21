@@ -1,12 +1,13 @@
 // =======================================================
-// PoemCarousel.jsx（KEY対応・final）
+// PoemCarousel.jsx（KEY対応・highlight対応・final）
 // =======================================================
 
 import React, { useRef, useCallback } from "react";
 import PoemCard from "./PoemCard";
 
 export default function PoemCarousel({
-  poems = [],          // ← 念のためデフォルト
+  poems = [],
+  highlightPoemId,     // ← 追加
   user,
   onEdit,
   onDelete,
@@ -75,9 +76,11 @@ export default function PoemCarousel({
       >
         {(poems || []).map((p) => {
           const isOwner = user && user.id === p.user_id;
+          const isHighlight = p.id === highlightPoemId;
 
           return (
             <div
+              id={`poem-${p.id}`}   // ← ★ここ
               key={`${p.id}-${user?.id ?? "guest"}`}
               style={{
                 scrollSnapAlign: "center",
@@ -87,16 +90,16 @@ export default function PoemCarousel({
               <PoemCard
                 poem={p}
                 theme={safeTheme}
+                isHighlight={isHighlight}
                 onRead={() => onRead(p)}
                 onTagClick={onTagClick}
-
-                // 🔐 編集・削除は「自分の詩のみ」
                 onEdit={isOwner ? () => onEdit(p) : null}
                 onDelete={isOwner ? () => onDelete(p.id) : null}
               />
             </div>
           );
         })}
+
       </div>
 
       {/* 右スクロール */}

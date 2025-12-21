@@ -27,3 +27,6 @@ yarn-error.log*
 
 # シークレットが含まれるファイル
 chatgpt.txt
+
+.vercel
+.env*.local

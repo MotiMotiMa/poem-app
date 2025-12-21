@@ -1,12 +1,10 @@
 // =======================================================
-// poemApi.js（最終安定版・RLS完全対応）
-// - 詩の取得・保存・削除
-// - 一覧取得
-// - AI評価（evaluatePoem）
+// poemApi.js（最終完成形・RLS完全対応）
+// - 詩の取得・一覧・保存・削除のみを担当
+// - AI評価は一切行わない（外部で済ませて渡す）
 // =======================================================
 
 import supabase from "../supabaseClient";
-import { evaluatePoem } from "../ai/evaluatePoem";
 
 // -------------------------------------------------------
 // ① 詩１件取得
@@ -46,11 +44,9 @@ export async function loadPoemList(order = "desc") {
 }
 
 // -------------------------------------------------------
-// ③ 詩の保存（AI評価 + RLS安全版）
+// ③ 詩の保存（評価済みデータをそのまま保存）
 // -------------------------------------------------------
 export async function savePoem(id, poemData) {
-  let updatedData = { ...poemData };
-
   // -------------------------------
   // 認証ユーザー取得（RLS必須）
   // -------------------------------
@@ -61,64 +57,45 @@ export async function savePoem(id, poemData) {
 
   if (userError || !user) {
     console.error("未ログインのため保存できません");
-    return null;
+    return false;
   }
 
   // -------------------------------
-  // AI評価
-  // -------------------------------
-  try {
-    const result = await evaluatePoem(
-      poemData.title,
-      poemData.poem
-    );
-
-    updatedData.score = result.score;
-    updatedData.comment = result.comment;
-    updatedData.emotion = result.emotion;
-    updatedData.tags = result.tags || [];
-    updatedData.status = id
-      ? "再評価されました"
-      : "新規評価されました";
-  } catch (err) {
-    console.error("AI評価エラー:", err);
-    updatedData.status = "AI評価に失敗しました";
-    updatedData.tags = updatedData.tags || [];
-  }
-
-  // -------------------------------
-  // 保存処理（重要：selectしない）
+  // 保存処理
+  // poemData には以下が含まれている前提：
+  // title, poem, score, comment, emotion, tags, status
   // -------------------------------
   if (id) {
     // 更新
     const { error } = await supabase
       .from("poems")
-      .update(updatedData)
+      .update({
+        ...poemData,
+        user_id: user.id, // 念のため上書き
+      })
       .eq("id", id);
 
     if (error) {
       console.error("savePoem update error:", error);
-      return null;
+      return false;
     }
   } else {
-    // 新規投稿（user_id を必ず付与）
+    // 新規投稿
     const { error } = await supabase
       .from("poems")
       .insert([
         {
-          ...updatedData,
+          ...poemData,
           user_id: user.id,
         },
       ]);
 
     if (error) {
       console.error("savePoem insert error:", error);
-      return null;
+      return false;
     }
   }
 
-  // ⚠️ 返り値は使わない
-  // 呼び出し側で loadPoemList() を呼ぶ前提
   return true;
 }
 

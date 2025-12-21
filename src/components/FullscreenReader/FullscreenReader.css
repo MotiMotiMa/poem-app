@@ -1,0 +1,184 @@
+/* ================================
+   FullscreenReader 基本舞台
+================================ */
+
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  padding: 3.5rem 1.5rem 4rem;
+
+  font-family: "YuMincho", "Hiragino Mincho ProN", serif;
+  line-height: 1.9;
+
+  transition: background 0.4s ease, color 0.3s ease;
+}
+
+/* ================================
+   中央コンテンツ幅制御
+================================ */
+
+.fullscreen > * {
+  width: 100%;
+  max-width: 720px;
+}
+
+/* ================================
+   閉じるボタン
+================================ */
+
+.fullscreen button {
+  font-family: inherit;
+}
+
+.fullscreen > button {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+
+  background: none;
+  border: none;
+
+  font-size: 1.1rem;
+  opacity: 0.7;
+  cursor: pointer;
+
+  transition: opacity 0.2s ease;
+}
+
+.fullscreen > button:hover {
+  opacity: 1;
+}
+
+/* ================================
+   詩本文（PoemBody想定）
+================================ */
+
+.poem-body {
+  margin-top: 2.5rem;
+  margin-bottom: 3rem;
+
+  white-space: pre-wrap;
+  text-align: center;
+
+  font-size: 1.35rem;
+  line-height: 2.3;
+}
+
+
+/* ================================
+   コメント導線ボタン
+================================ */
+
+.open-comment {
+  margin: 2rem auto 0;
+  padding: 0.4rem 0.8rem;
+
+  background: none;
+  border: none;
+
+  font-size: 0.9rem;
+  opacity: 0.6;
+  cursor: pointer;
+
+  transition: opacity 0.2s ease;
+}
+
+.open-comment:hover {
+  opacity: 0.9;
+}
+
+/* ================================
+   コメント本体（PoemComment想定）
+================================ */
+
+.poem-comment {
+  margin-top: 3rem;
+  padding: 1.2rem 1.4rem;
+
+  border-radius: 10px;
+
+  font-size: 0.95rem;
+  line-height: 1.8;
+
+  opacity: 0;
+  transform: translateY(6px);
+
+  animation: commentFadeIn 0.8s ease forwards;
+}
+
+/* ================================
+   アニメーション
+================================ */
+
+@keyframes commentFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================================
+   モバイル微調整
+================================ */
+
+@media (max-width: 600px) {
+  .fullscreen {
+    padding: 3rem 1rem 3.5rem;
+  }
+
+  .poem-body {
+    font-size: 1.15rem;
+    line-height: 2.1;
+  }
+}
+
+
+/* ================================
+   メタ情報全体
+================================ */
+
+.poem-meta {
+  margin-top: 1rem;
+  margin-bottom: 2.2rem;
+  text-align: center;
+}
+
+/* タイトル */
+.poem-title {
+  margin-bottom: 0.4rem;
+  font-size: 1.6rem;
+  font-weight: normal;
+  word-break: break-word;
+}
+
+/* 評価 */
+.poem-score {
+  display: inline-block;
+  margin-top: 0.2rem;
+  margin-bottom: 1.2rem;
+
+  padding: 0.3rem 0.9rem;
+  border-radius: 18px;
+
+  font-size: 0.85rem;
+  opacity: 0.8;
+
+  backdrop-filter: blur(4px);
+}
+
+/* タグ */
+.poem-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
