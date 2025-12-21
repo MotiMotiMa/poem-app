@@ -113,11 +113,18 @@ export default function PoemListPage({ theme, setLoading }) {
     fetchPoems();
   }, []);
 
+ 
   // -----------------------------------------------------
-  // 保存後
+  // 保存後（★ここが唯一の完了トリガー）
   // -----------------------------------------------------
   const handleSave = async () => {
     await fetchPoems();
+
+    // 編集 or 新規保存した詩をハイライト
+    if (editingPoem?.id) {
+      setHighlightPoemId(editingPoem.id);
+    }
+
     setEditingPoem(null);
     setIsFormOpen(false);
   };
@@ -240,12 +247,8 @@ useEffect(() => {
             user={user}
             setLoading={setLoading}
             onSaved={handleSave}
-            onTitleConfirmed={(poemId) => {
-              setHighlightPoemId(poemId);
-              setTimeout(() => {
-                setIsFormOpen(false);
-                setEditingPoem(null);
-              }, 700);
+           onTitleConfirmed={() => {
+            // 何もしない or 軽い視覚効果のみ
             }}
           />
         ) : (
@@ -257,11 +260,7 @@ useEffect(() => {
               setLoading={setLoading}
               onSaved={handleSave}
               onTitleConfirmed={(poemId) => {
-                setHighlightPoemId(poemId);
-                setTimeout(() => {
-                  setIsFormOpen(false);
-                  setEditingPoem(null);
-                }, 700);
+               // タイトル確定はUI補助のみ（閉じない
               }}
             />
           </PoemFormCard>
