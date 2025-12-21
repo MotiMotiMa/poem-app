@@ -436,7 +436,7 @@ export default function PoemForm({
               opacity: formDisabled || !user ? 0.6 : 1,
             }}
           >
-            保存する
+            {!user ? "ログインが必要です" : "保存する"}
           </button>
         </div>
       </div>
