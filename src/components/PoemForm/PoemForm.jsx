@@ -419,6 +419,8 @@ export default function PoemForm({
             zIndex: 10000,
           }}
         >
+        console.log("PoemForm user:", user);
+
           <button
             onClick={handleSave}
             disabled={formDisabled || !user}
