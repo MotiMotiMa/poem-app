@@ -1,40 +1,49 @@
 // ===============================================
-// App.js（OSテーマ自動追従 + Router管理 + Loading一元化）
+// App.js（OAuthリダイレクト完全対応版）
 // ===============================================
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import PoemListPage from "./pages/PoemListPage";
 import EditPage from "./pages/EditPage";
 import PoemViewPage from "./pages/PoemViewPage";
 
+import supabase from "./supabaseClient";
 import { getTheme } from "./theme";
 
 function App() {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  // -----------------------------------------------
-  // OS のライト/ダーク設定を読み取り state に保持
-  // -----------------------------------------------
+  // OSテーマ
   const [mode, setMode] = useState(
     window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light"
   );
 
-  // -----------------------------------------------
-  // OS のテーマ変更をリアルタイム検知
-  // -----------------------------------------------
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-
-    const handler = (e) => {
-      setMode(e.matches ? "dark" : "light");
-    };
-
+    const handler = (e) => setMode(e.matches ? "dark" : "light");
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
+
+  // ===============================
+  // 🔑 OAuth リダイレクト処理
+  // ===============================
+  useEffect(() => {
+    const handleAuthRedirect = async () => {
+      const { data } = await supabase.auth.getSession();
+
+      // セッションが取れていたらURLを正規化
+      if (data?.session) {
+        navigate("/", { replace: true });
+      }
+    };
+
+    handleAuthRedirect();
+  }, [navigate]);
 
   const theme = getTheme(mode);
 
@@ -44,12 +53,8 @@ function App() {
         background: theme.bg,
         minHeight: "100vh",
         color: theme.text,
-        transition: "background 0.3s ease, color 0.3s ease",
       }}
     >
-      {/* ======================================
-          Loading Overlay（親一元管理）
-         ====================================== */}
       {loading && (
         <div
           style={{
@@ -60,7 +65,6 @@ function App() {
             alignItems: "center",
             justifyContent: "center",
             zIndex: 9999,
-            backdropFilter: "blur(2px)",
           }}
         >
           <div
@@ -69,8 +73,6 @@ function App() {
               borderRadius: "12px",
               background: theme.bg,
               color: theme.text,
-              fontSize: "0.95rem",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
             }}
           >
             処理中…
@@ -78,9 +80,6 @@ function App() {
         </div>
       )}
 
-      {/* ======================================
-          Routes
-         ====================================== */}
       <Routes>
         <Route
           path="/"
