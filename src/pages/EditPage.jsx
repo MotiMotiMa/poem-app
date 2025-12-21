@@ -37,16 +37,12 @@ export default function EditPage({ theme, setLoading }) {
 
   return (
     <PoemForm
-      poemId={id}
-      theme={theme}
-      user={user}            // ★ 必ず存在する状態で渡す
-      setLoading={setLoading}
-      onSaved={() => navigate("/")}
-      onTitleConfirmed={() => {
-        setTimeout(() => {
-          navigate("/");
-        }, 700);
-      }}
-    />
+        poemId={id}
+        theme={theme}
+        user={user}
+        setLoading={setLoading}
+        onSaved={() => navigate("/")}
+      />
+
   );
 }

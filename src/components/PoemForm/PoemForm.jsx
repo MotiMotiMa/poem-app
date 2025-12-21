@@ -240,7 +240,6 @@ export default function PoemForm({
       setShowMeta(true);
     } catch {
       alert("タイトル生成に失敗しました");
-      onTitleConfirmed?.(); // ★ 失敗でも区切りとして通す
     } finally {
       setIsGeneratingTitle(false);
     }
