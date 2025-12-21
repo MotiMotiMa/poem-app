@@ -76,22 +76,20 @@ export default function PoemListPage({ theme, setLoading }) {
   // 認証セッション取得
   // -----------------------------------------------------
   useEffect(() => {
-      const init = async () => {
-        const { data, error } = await supabase.auth.getUser();
-        if (!error) {
-          setUser(data.user);
-        }
-      };
-      init();
+    const init = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user ?? null);
+    };
+    init();
 
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
-      });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
 
-      return () => subscription.unsubscribe();
-    }, []);
+    return () => subscription.unsubscribe();
+  }, []);
 
 
   // -----------------------------------------------------

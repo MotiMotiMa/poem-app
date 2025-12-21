@@ -33,6 +33,7 @@ export default function PoemForm({
   onSaved,
   onTitleConfirmed,
 }) {
+  console.log("PoemForm user:", user);
   const idleTimerRef = useRef(null);
   const idle5minRef = useRef(null);
   const pastedToastTimerRef = useRef(null);
