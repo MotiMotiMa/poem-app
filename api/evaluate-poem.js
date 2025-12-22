@@ -135,6 +135,7 @@ ${poem}
 
     const data = await response.json();
     const raw = data.choices?.[0]?.message?.content;
+    console.log("AI raw response:", raw);
 
     if (!raw) {
       throw new Error("Empty AI response");
