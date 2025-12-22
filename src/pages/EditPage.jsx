@@ -14,6 +14,12 @@ export default function EditPage({ theme, setLoading }) {
   const [user, setUser] = useState(undefined); // undefined = 未確定
 
   useEffect(() => {
+  console.log("EditPage mount");
+  return () => console.log("EditPage unmount");
+}, []);
+
+
+  useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getUser();
       setUser(data?.user ?? null);

@@ -120,6 +120,11 @@ export default function PoemForm({
     };
   }, []);
 
+  useEffect(() => {
+  console.log("PoemForm mount");
+  return () => console.log("PoemForm unmount");
+}, []);
+
   // ---------------- 下書き復元 ----------------
   useEffect(() => {
     if (poemId) return;
