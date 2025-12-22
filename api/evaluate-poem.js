@@ -140,17 +140,21 @@ ${poem}
       throw new Error("Empty AI response");
     }
 
-    // ---------------------------------------------------
-    // JSON安全パース
+
+   // ---------------------------------------------------
+    // JSON安全抽出（前後にゴミがあっても拾う）
     // ---------------------------------------------------
     let parsed;
     try {
-      parsed = JSON.parse(raw);
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (!match) {
+        throw new Error("No JSON object found");
+      }
+      parsed = JSON.parse(match[0]);
     } catch (e) {
       console.error("JSON parse failed:", raw);
       throw new Error("Invalid JSON from AI");
     }
-
     return res.status(200).json({
       score: parsed.score ?? null,
       emotion: parsed.emotion ?? "light",
