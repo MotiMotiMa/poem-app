@@ -25,7 +25,18 @@ export default function PoemForm({
   // =====================================================
   // device
   // =====================================================
-  const isWide = window.innerWidth >= 768;
+const [isWide, setIsWide] = useState(
+  typeof window !== "undefined" && window.innerWidth >= 768
+);
+
+useEffect(() => {
+  const onResize = () => {
+    setIsWide(window.innerWidth >= 768);
+  };
+  window.addEventListener("resize", onResize);
+  return () => window.removeEventListener("resize", onResize);
+}, []);
+
 
   // =====================================================
   // state
