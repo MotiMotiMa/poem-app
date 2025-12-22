@@ -8,6 +8,7 @@
 // - 一覧復帰時、該当詩カードを一瞬だけハイライト
 // - 一覧復帰時のスクロール位置復元（sessionStorage）
 // - ★削除時は FullscreenReader を強制クローズ
+// - ★ログアウト時は UI を完全クリーンアップ
 // =======================================================
 
 import { useState, useEffect, useMemo } from "react";
@@ -33,7 +34,15 @@ export default function PoemListPage({ theme, setLoading }) {
   const textColor = isDark ? "#f1f1f1" : "#111";
 
   // ---------- device ----------
-  const isMobile = window.innerWidth < 768;
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const onResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // ---------- state ----------
   const [user, setUser] = useState(null);
@@ -91,6 +100,17 @@ export default function PoemListPage({ theme, setLoading }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // -----------------------------------------------------
+  // ★ ログアウト時のUIクリーンアップ（必須）
+  // -----------------------------------------------------
+  useEffect(() => {
+    if (user) return;
+
+    setIsFormOpen(false);
+    setEditingPoem(null);
+    setReadingPoem(null);
+  }, [user]);
 
   // -----------------------------------------------------
   // 詩一覧取得
