@@ -29,21 +29,6 @@ function App() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // ===============================
-  // 🔑 OAuth リダイレクト処理
-  // ===============================
-  useEffect(() => {
-    const handleAuthRedirect = async () => {
-      const { data } = await supabase.auth.getSession();
-
-      // セッションが取れていたらURLを正規化
-      if (data?.session) {
-        navigate("/", { replace: true });
-      }
-    };
-
-    handleAuthRedirect();
-  }, [navigate]);
 
   const theme = getTheme(mode);
 
