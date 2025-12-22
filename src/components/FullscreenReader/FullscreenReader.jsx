@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { emotionPalette } from "../../styles/emotionPalette";
 
 import PoemBody from "./PoemBody";
@@ -10,6 +10,9 @@ export default function FullscreenReader({ poem, onClose, theme }) {
   // Hooks は最上部固定
   // -----------------------------
   const [showComment, setShowComment] = useState(false);
+  const [canShowComment, setCanShowComment] = useState(false);
+
+  const endRef = useRef(null);
 
   const safeTheme = theme || "light";
   const emotion = poem?.emotion || "light";
@@ -25,7 +28,26 @@ export default function FullscreenReader({ poem, onClose, theme }) {
   }, [emotion, safeTheme]);
 
   // -----------------------------
-  // ガードは Hooks の後
+  // 読了検知（末尾が表示されたら解放）
+  // -----------------------------
+  useEffect(() => {
+    if (!endRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setCanShowComment(true);
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    observer.observe(endRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // -----------------------------
+  // ガード（Hooks の後）
   // -----------------------------
   if (!poem) return null;
 
@@ -49,6 +71,7 @@ export default function FullscreenReader({ poem, onClose, theme }) {
           fontSize: "1.1rem",
           opacity: 0.8,
           cursor: "pointer",
+          zIndex: 1000,
         }}
       >
         ✕
@@ -58,9 +81,13 @@ export default function FullscreenReader({ poem, onClose, theme }) {
 
       <PoemBody poem={poem} />
 
+      {/* 読了位置マーカー */}
+      <div ref={endRef} style={{ height: "1px" }} />
+
       <div style={{ height: "2rem" }} />
 
-      {!showComment && poem.comment && (
+      {/* 読了後にだけ入口が出る */}
+      {canShowComment && !showComment && poem.comment && (
         <button
           onClick={() => setShowComment(true)}
           style={{

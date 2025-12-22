@@ -1,5 +1,5 @@
 // =======================================================
-// PoemForm.jsx（完成版：UX最適化＋広画面対応＋AI評価）
+// PoemForm.jsx（完成版：UX最適化＋広画面対応＋AI評価保存対応）
 // =======================================================
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -25,18 +25,15 @@ export default function PoemForm({
   // =====================================================
   // device
   // =====================================================
-const [isWide, setIsWide] = useState(
-  typeof window !== "undefined" && window.innerWidth >= 768
-);
+  const [isWide, setIsWide] = useState(
+    typeof window !== "undefined" && window.innerWidth >= 768
+  );
 
-useEffect(() => {
-  const onResize = () => {
-    setIsWide(window.innerWidth >= 768);
-  };
-  window.addEventListener("resize", onResize);
-  return () => window.removeEventListener("resize", onResize);
-}, []);
-
+  useEffect(() => {
+    const onResize = () => setIsWide(window.innerWidth >= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // =====================================================
   // state
@@ -46,11 +43,13 @@ useEffect(() => {
   const [emotion, setEmotion] = useState("light");
   const [tags, setTags] = useState("");
 
+  // ★ AI評価用 state（追加）
+  const [aiScore, setAiScore] = useState(0);
+  const [aiComment, setAiComment] = useState("");
+
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [showSavedToast, setShowSavedToast] = useState(false);
-
-  const idleTimerRef = useRef(null);
 
   // =====================================================
   // theme / palette
@@ -107,6 +106,8 @@ useEffect(() => {
           setPoem(p.poem || "");
           setEmotion(p.emotion || "light");
           setTags((p.tags || []).join(","));
+          setAiScore(p.score ?? 0);
+          setAiComment(p.comment ?? "");
         }
       } finally {
         setLoading(false);
@@ -116,7 +117,7 @@ useEffect(() => {
   }, [poemId, setLoading]);
 
   // =====================================================
-  // 保存処理
+  // 保存処理（★ AI評価も一緒に保存）
   // =====================================================
   const handleSave = async () => {
     if (!user) {
@@ -136,6 +137,8 @@ useEffect(() => {
         title,
         poem,
         emotion,
+        score: aiScore,
+        comment: aiComment,
         tags: tags.split(",").map(t => t.trim()).filter(Boolean),
       });
 
@@ -153,7 +156,7 @@ useEffect(() => {
   };
 
   // =====================================================
-  // AI評価処理（★ここが今回の修正点）
+  // AI評価処理（★ state に流す）
   // =====================================================
   const handleEvaluate = async () => {
     if (!poem.trim()) return;
@@ -171,8 +174,8 @@ useEffect(() => {
       if (!res.ok) throw new Error("AI評価失敗");
 
       const data = await res.json();
-      console.log("AI評価:", data);
-      // ここで data.comment / data.score 等を state に流せる
+      setAiScore(data.score ?? 0);
+      setAiComment(data.comment ?? "");
     } catch (e) {
       console.error(e);
     }
@@ -219,9 +222,6 @@ useEffect(() => {
             padding: "0.75rem",
             background: palette.bg2,
             borderRadius: "18px",
-            position: "relative",      // ★ 追加
-            zIndex: 10001,              // ★ 追加
-            pointerEvents: "auto",      // ★ 追加
           }}
         >
           <button
@@ -235,7 +235,6 @@ useEffect(() => {
               color: "#fff",
               padding: "0.7rem",
               border: "none",
-              
               fontWeight: "bold",
             }}
           >
@@ -253,18 +252,10 @@ useEffect(() => {
               border: `1px solid ${palette.border}`,
               color: palette.text,
               padding: "0.6rem",
-              opacity: poem.trim() ? 1 : 0.4,
-              pointerEvents: poem.trim() ? "auto" : "none",
             }}
           >
             AI評価
           </button>
-
-          {saveError && (
-            <div style={{ color: "#d33", textAlign: "center", marginTop: "0.5rem" }}>
-              {saveError}
-            </div>
-          )}
         </div>
       </div>
 
