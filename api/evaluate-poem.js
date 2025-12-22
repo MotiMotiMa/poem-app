@@ -5,7 +5,7 @@
 // - 通常タイトル3つ + 攻めすぎタイトル1つ
 // - 評価コメントは「断定しない編集者文体」固定
 // =======================================================
-
+export const config = { runtime: "nodejs" };
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
