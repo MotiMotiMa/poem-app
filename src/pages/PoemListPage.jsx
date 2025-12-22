@@ -236,16 +236,18 @@ export default function PoemListPage({ theme, setLoading }) {
         />
       )}
 
-      <PoemCarousel
-        poems={filteredPoems}
-        highlightPoemId={highlightPoemId}
-        user={user}
-        onEdit={(p) => navigate(`/edit/${p.id}`)}
-        onDelete={handleDelete}
-        onTagClick={setSelectedTag}
-        onRead={(p) => setReadingPoem(p)}
-        theme={safeTheme}
-      />
+      {user && (
+        <PoemCarousel
+          poems={filteredPoems}
+          highlightPoemId={highlightPoemId}
+          user={user}
+          onEdit={(p) => navigate(`/edit/${p.id}`)}
+          onDelete={handleDelete}
+          onTagClick={setSelectedTag}
+          onRead={(p) => setReadingPoem(p)}
+          theme={safeTheme}
+        />
+      )}
 
       {readingPoem && (
         <FullscreenReader
