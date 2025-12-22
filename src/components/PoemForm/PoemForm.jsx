@@ -1,14 +1,5 @@
 // =======================================================
-// PoemForm.jsx（最終完成形：iOS/編集画面の伸び縮み揺れ潰し込み）
-// - Portal対応
-// - 書き終わり検知 → 保存予告
-// - evaluate-poem API 統合（タイトル生成 / 保存時再評価）
-// - ESCキー対応（未保存ガード）
-// - 自動保存ドラフト（localStorage）
-// - 5分無操作でやさしい保存トースト
-// - タイトル確定で親に通知（700ms後クローズ）
-// - iOS viewport 揺れ対策（visualViewport + CSS var）
-// - Portal中はbodyスクロール停止
+// PoemForm.jsx（完成版：UX最適化・保存フィードバック・粒度ローディング）
 // =======================================================
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -33,20 +24,14 @@ export default function PoemForm({
   onSaved,
   onTitleConfirmed,
 }) {
-  console.log("PoemForm user:", user);
-  const idleTimerRef = useRef(null);
-  const idle5minRef = useRef(null);
-  const pastedToastTimerRef = useRef(null);
-  const draftToastTimerRef = useRef(null);
-
-  // ---------------- theme/emotion 安全化 ----------------
-  const safeTheme = theme || "light";
-
-  // ---------------- state ----------------
+  // =====================================================
+  // state
+  // =====================================================
   const [title, setTitle] = useState("");
   const [poem, setPoem] = useState("");
   const [emotion, setEmotion] = useState("light");
   const [tags, setTags] = useState("");
+
   const [editingPoem, setEditingPoem] = useState(null);
 
   const [formDisabled, setFormDisabled] = useState(false);
@@ -59,12 +44,28 @@ export default function PoemForm({
   const [showDraftToast, setShowDraftToast] = useState(false);
   const [showPastedToast, setShowPastedToast] = useState(false);
 
-  // ---------------- palette 安定化 ----------------
+  // --- UX feedback ---
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [showSavedToast, setShowSavedToast] = useState(false);
+
+  // =====================================================
+  // refs
+  // =====================================================
+  const idleTimerRef = useRef(null);
+  const idle5minRef = useRef(null);
+  const pastedToastTimerRef = useRef(null);
+  const draftToastTimerRef = useRef(null);
+
+  // =====================================================
+  // theme / palette
+  // =====================================================
+  const safeTheme = theme || "light";
+
   const palette = useMemo(() => {
     return (
       emotionPalette?.[emotion]?.[safeTheme] ||
-      emotionPalette?.light?.light ||
-      {
+      emotionPalette?.light?.light || {
         bg: "#fafafa",
         bg2: "#ffffff",
         text: "#111",
@@ -77,7 +78,15 @@ export default function PoemForm({
   }, [emotion, safeTheme]);
 
   // =====================================================
-  // Portal表示中：bodyスクロール停止（iOSのガタつき抑制）
+  // mount / unmount log（デバッグ用・残してOK）
+  // =====================================================
+  useEffect(() => {
+    console.log("PoemForm mount");
+    return () => console.log("PoemForm unmount");
+  }, []);
+
+  // =====================================================
+  // body scroll lock（Portal表示中）
   // =====================================================
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -93,7 +102,7 @@ export default function PoemForm({
   }, []);
 
   // =====================================================
-  // iOS viewport 揺れ対策：visualViewport → CSS変数
+  // iOS viewport 揺れ対策
   // =====================================================
   useEffect(() => {
     const setVVH = () => {
@@ -120,12 +129,9 @@ export default function PoemForm({
     };
   }, []);
 
-  useEffect(() => {
-  console.log("PoemForm mount");
-  return () => console.log("PoemForm unmount");
-}, []);
-
-  // ---------------- 下書き復元 ----------------
+  // =====================================================
+  // 下書き復元（新規時のみ）
+  // =====================================================
   useEffect(() => {
     if (poemId) return;
     const raw = localStorage.getItem(DRAFT_KEY);
@@ -139,7 +145,9 @@ export default function PoemForm({
     } catch {}
   }, [poemId]);
 
-  // ---------------- 自動ドラフト保存 ----------------
+  // =====================================================
+  // 自動ドラフト保存
+  // =====================================================
   useEffect(() => {
     if (poemId) return;
     localStorage.setItem(
@@ -148,7 +156,9 @@ export default function PoemForm({
     );
   }, [title, poem, emotion, tags, poemId]);
 
-  // ---------------- 編集読み込み ----------------
+  // =====================================================
+  // 編集データ読み込み
+  // =====================================================
   useEffect(() => {
     async function fetchPoem() {
       if (!poemId) return;
@@ -170,7 +180,9 @@ export default function PoemForm({
     fetchPoem();
   }, [poemId, setLoading]);
 
-  // ---------------- 書き終わり検知 ----------------
+  // =====================================================
+  // 書き終わり検知（保存ヒント）
+  // =====================================================
   useEffect(() => {
     if (!poem) {
       setShowSaveHint(false);
@@ -186,7 +198,9 @@ export default function PoemForm({
     return () => clearTimeout(idleTimerRef.current);
   }, [poem]);
 
-  // ---------------- 5分無操作トースト ----------------
+  // =====================================================
+  // 5分無操作トースト
+  // =====================================================
   useEffect(() => {
     if (poemId) return;
 
@@ -207,7 +221,9 @@ export default function PoemForm({
     };
   }, [poem, title, tags, poemId]);
 
-  // ---------------- ESCキー（未保存ガード） ----------------
+  // =====================================================
+  // ESCキー（未保存ガード）
+  // =====================================================
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== "Escape") return;
@@ -221,7 +237,7 @@ export default function PoemForm({
   }, [poem, title, tags, onSaved]);
 
   // =====================================================
-  // タイトル生成（evaluate-poem：軽量利用）
+  // タイトル生成
   // =====================================================
   const generateTitle = async () => {
     if (!poem.trim()) return;
@@ -244,78 +260,79 @@ export default function PoemForm({
       }
       setShowMeta(true);
     } catch {
-      alert("タイトル生成に失敗しました");
+      setSaveError("タイトル生成に失敗しました");
     } finally {
       setIsGeneratingTitle(false);
     }
   };
 
-  // =====================================================
-  // タイトル確定（即）
-  // =====================================================
   const handlePickTitle = (picked) => {
     setTitle(picked);
     onTitleConfirmed?.();
   };
 
   // =====================================================
-  // 保存（evaluate-poem：本評価）
+  // 保存処理（UX最適化）
   // =====================================================
- const handleSave = async () => {
-  if (!user) return alert("ログインが必要です");
-  if (!poem.trim()) return alert("本文が空です");
-
-  setFormDisabled(true);
-  setLoading(true);
-  setShowSaveHint(false);
-
-  let evalData = null;
-
-  try {
-    // --- AI評価は「あれば使う」 ---
-    const evalRes = await fetch("/api/evaluate-poem", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ poem }),
-    });
-
-    if (evalRes.ok) {
-      evalData = await evalRes.json();
+  const handleSave = async () => {
+    if (!user) {
+      setSaveError("ログインが必要です");
+      return;
     }
-  } catch (e) {
-    // 何もしない（AI失敗は許容）
-    console.warn("AI評価スキップ", e);
-  }
-
-  try {
-    // --- 保存は必ず実行 ---
-    const ok = await savePoem(poemId, {
-      title,
-      poem,
-      score: evalData?.score ?? null,
-      comment: evalData?.comment ?? "",
-      emotion: evalData?.emotion || emotion,
-      tags: evalData?.tags || tags.split(",").map(t => t.trim()).filter(Boolean),
-      status: poemId
-        ? evalData ? "再評価されました" : "保存されました"
-        : evalData ? "新規評価されました" : "下書き保存されました",
-    });
-
-    if (!ok) {
-      alert("保存できませんでした");
+    if (!poem.trim()) {
+      setSaveError("本文が空です");
       return;
     }
 
-    localStorage.removeItem(DRAFT_KEY);
-    onSaved?.();
-  } finally {
-    setLoading(false);
-    setFormDisabled(false);
-  }
-};
+    setSaveError("");
+    setSaving(true);
+    setFormDisabled(true);
+    setShowSaveHint(false);
 
+    let evalData = null;
 
-  // ---------------- JSX（Portal） ----------------
+    try {
+      const evalRes = await fetch("/api/evaluate-poem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ poem }),
+      });
+      if (evalRes.ok) evalData = await evalRes.json();
+    } catch {}
+
+    try {
+      const ok = await savePoem(poemId, {
+        title,
+        poem,
+        score: evalData?.score ?? null,
+        comment: evalData?.comment ?? "",
+        emotion: evalData?.emotion || emotion,
+        tags: evalData?.tags || tags.split(",").map(t => t.trim()).filter(Boolean),
+      });
+
+      if (!ok) {
+        setSaveError("保存に失敗しました。もう一度お試しください。");
+        return;
+      }
+
+      localStorage.removeItem(DRAFT_KEY);
+      setShowSavedToast(true);
+
+      setTimeout(() => {
+        onSaved?.();
+      }, 900);
+    } catch (e) {
+      console.error(e);
+      setSaveError("予期しないエラーが発生しました。");
+    } finally {
+      setSaving(false);
+      setFormDisabled(false);
+    }
+  };
+
+  // =====================================================
+  // JSX（Portal）
+  // =====================================================
   return createPortal(
     <>
       <div
@@ -328,14 +345,12 @@ export default function PoemForm({
           display: "flex",
           flexDirection: "column",
           zIndex: 9999,
-          overscrollBehavior: "none",
         }}
       >
         <div
           style={{
             flex: 1,
             overflowY: "auto",
-            WebkitOverflowScrolling: "touch",
             padding: "1rem",
             paddingBottom: "calc(12rem + env(safe-area-inset-bottom))",
           }}
@@ -390,9 +405,6 @@ export default function PoemForm({
               background: palette.bg2,
               padding: "0.6rem 1rem",
               borderRadius: "16px",
-              display: "flex",
-              gap: "0.75rem",
-              zIndex: 10000,
             }}
           >
             <span>ひと区切りつきました</span>
@@ -400,11 +412,11 @@ export default function PoemForm({
               onClick={generateTitle}
               disabled={isGeneratingTitle}
               style={{
+                marginLeft: "0.75rem",
                 background: "none",
                 border: "none",
                 color: palette.primary,
                 textDecoration: "underline",
-                cursor: "pointer",
               }}
             >
               タイトル生成
@@ -421,12 +433,11 @@ export default function PoemForm({
             padding: "0.75rem",
             background: palette.bg2,
             borderRadius: "18px",
-            zIndex: 10000,
           }}
         >
-         <button
+          <button
             onClick={handleSave}
-            disabled={formDisabled || !user}
+            disabled={formDisabled || saving || !user}
             style={{
               width: "100%",
               border: "none",
@@ -435,14 +446,48 @@ export default function PoemForm({
               color: "#fff",
               fontWeight: "bold",
               padding: "0.7rem",
-              cursor: formDisabled || !user ? "not-allowed" : "pointer",
-              opacity: formDisabled || !user ? 0.6 : 1,
+              opacity: formDisabled || saving || !user ? 0.6 : 1,
             }}
           >
-            {!user ? "ログインが必要です" : "保存する"}
+            {!user
+              ? "ログインが必要です"
+              : saving
+              ? "保存しています…"
+              : "保存する"}
           </button>
+
+          {saveError && (
+            <div
+              style={{
+                marginTop: "0.6rem",
+                color: "#d33",
+                fontSize: "0.85rem",
+                textAlign: "center",
+              }}
+            >
+              {saveError}
+            </div>
+          )}
         </div>
       </div>
+
+      {showSavedToast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "calc(8rem + env(safe-area-inset-bottom))",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: palette.bg2,
+            padding: "0.6rem 1rem",
+            borderRadius: "18px",
+            fontSize: "0.85rem",
+            zIndex: 10002,
+          }}
+        >
+          ✓ 保存しました
+        </div>
+      )}
 
       {showPastedToast && (
         <div
@@ -456,7 +501,6 @@ export default function PoemForm({
             borderRadius: "18px",
             fontSize: "0.8rem",
             zIndex: 10001,
-            opacity: 0.92,
           }}
         >
           貼り付けました
