@@ -255,8 +255,7 @@ export default function PoemListPage({ theme, setLoading }) {
           theme={safeTheme}
         />
       )}
-
-      {isMobile && !isFormOpen && (
+     {user && !isFormOpen && (
         <button
           onClick={() => {
             setEditingPoem(null);
