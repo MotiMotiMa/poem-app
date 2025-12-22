@@ -219,6 +219,9 @@ useEffect(() => {
             padding: "0.75rem",
             background: palette.bg2,
             borderRadius: "18px",
+            position: "relative",      // ★ 追加
+            zIndex: 10001,              // ★ 追加
+            pointerEvents: "auto",      // ★ 追加
           }}
         >
           <button
@@ -232,6 +235,7 @@ useEffect(() => {
               color: "#fff",
               padding: "0.7rem",
               border: "none",
+              
               fontWeight: "bold",
             }}
           >
