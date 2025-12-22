@@ -132,7 +132,6 @@ ${poem}
       const text = await response.text();
       throw new Error(text);
     }
-    console.log("AI full response:test");
     const data = await response.json();
     const raw = data.choices?.[0]?.message?.content;
     console.log("AI raw response:", raw);
