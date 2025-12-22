@@ -7,6 +7,7 @@
 // - 保存完了時のみ PoemForm をクローズ
 // - 一覧復帰時、該当詩カードを一瞬だけハイライト
 // - 一覧復帰時のスクロール位置復元（sessionStorage）
+// - ★削除時は FullscreenReader を強制クローズ
 // =======================================================
 
 import { useState, useEffect, useMemo } from "react";
@@ -91,7 +92,6 @@ export default function PoemListPage({ theme, setLoading }) {
     return () => subscription.unsubscribe();
   }, []);
 
-
   // -----------------------------------------------------
   // 詩一覧取得
   // -----------------------------------------------------
@@ -124,7 +124,7 @@ export default function PoemListPage({ theme, setLoading }) {
   };
 
   // -----------------------------------------------------
-  // 削除
+  // 削除（★FullscreenReader を必ず閉じる）
   // -----------------------------------------------------
   const handleDelete = async (id) => {
     if (!user) {
@@ -135,8 +135,16 @@ export default function PoemListPage({ theme, setLoading }) {
 
     try {
       setLoading(true);
+
+      // ★ UIの後始末（先に閉じる）
+      setReadingPoem(null);
+
       const ok = await deletePoem(id);
-      if (!ok) alert("削除できませんでした");
+      if (!ok) {
+        alert("削除できませんでした");
+        return;
+      }
+
       await fetchPoems();
     } finally {
       setLoading(false);
