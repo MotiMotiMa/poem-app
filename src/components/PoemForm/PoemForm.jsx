@@ -230,7 +230,6 @@ export default function PoemForm({
           <button
             type="button"
             onClick={handleEvaluate}
-            disabled={!poem.trim()}
             style={{
               width: "100%",
               marginTop: "0.6rem",
@@ -239,6 +238,8 @@ export default function PoemForm({
               border: `1px solid ${palette.border}`,
               color: palette.text,
               padding: "0.6rem",
+              opacity: poem.trim() ? 1 : 0.4,
+              pointerEvents: poem.trim() ? "auto" : "none",
             }}
           >
             AI評価
