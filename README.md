@@ -1,70 +1,124 @@
-# Getting Started with Create React App
+# PoemApp
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+詩を書く・保存する・読むためのシンプルなWebアプリです。  
+React（Create React App）+ React Router + Supabase（Google OAuth）+ Vercel で動作します。
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 機能
 
-### `npm start`
+### 投稿・編集・閲覧
+- 詩の新規作成
+- 詩の編集（/edit/:id）
+- 詩の閲覧（/view/:id）
+- タイトル、本文、感情（emotion）、タグの管理
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### タイトル生成・AI評価（任意）
+- /api/evaluate-poem によるタイトル候補生成
+- 保存時に評価データ（score/comment/emotion/tags など）を付与可能
+- AI評価が失敗しても保存自体は継続（評価は「任意」扱い）
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### UX（体験の安定化）
+- 保存中はボタン文言が「保存しています…」に変化
+- 保存成功トースト「✓ 保存しました」表示後に遷移
+- エラーは画面内に1行表示（alert 乱用を避ける）
+- 新規作成時は localStorage に下書き自動保存
+- iOS での viewport 揺れ対策（visualViewport + CSS変数）
+- Portal 表示中は body スクロール停止
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 技術スタック
+- Create React App（CRA）
+- React / React Router（BrowserRouter）
+- Supabase（Auth + DB）
+- Vercel（ホスティング / Functions）
+- API: `/api/evaluate-poem`（Vercel Functions想定）
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## ルーティング構成
+- `/` 一覧
+- `/edit/:id` 編集
+- `/view/:id` 閲覧
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+注意  
+HashRouter（/#/）は使用しません。Supabase OAuth の戻り値と衝突するため、BrowserRouter を採用しています。
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## 必要な環境変数（例）
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+CRA のため、クライアント側は `REACT_APP_` 接頭辞が必要です。
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+`.env`（例）
+- `REACT_APP_SUPABASE_URL=...`
+- `REACT_APP_SUPABASE_ANON_KEY=...`
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+注意  
+`.env` は Git にコミットしないでください（.gitignore 推奨）。
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## 開発（ローカル）
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+依存関係のインストール
+```bash
+npm install
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+# PoemApp
 
-### Code Splitting
+PoemApp は、詩を書く・保存する・読むことに特化した Web アプリです。  
+Create React App（CRA）をベースに、Supabase（Auth + DB）と Vercel を用いて運用しています。
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+本 README は **実際のプロジェクト構成・運用前提に即したドキュメント**です。
 
-### Analyzing the Bundle Size
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 概要
 
-### Making a Progressive Web App
+- 詩の新規作成 / 編集 / 閲覧
+- Google OAuth ログイン（Supabase）
+- 下書き自動保存（localStorage）
+- 保存時の UX フィードバック最適化
+- AI によるタイトル生成・評価（任意・失敗許容）
+- iOS Safari 対応（viewport 揺れ対策 / Portal）
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+---
 
-### Advanced Configuration
+## 技術スタック
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- Create React App（CRA）
+- React 18
+- React Router（BrowserRouter）
+- Supabase
+  - Authentication（Google OAuth）
+  - Database（PostgreSQL）
+  - RLS（Row Level Security）
+- Vercel
+  - Hosting
+  - Serverless Functions（/api）
 
-### Deployment
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## ルーティング構成
 
-### `npm run build` fails to minify
+| Path | 内容 |
+|---|---|
+| `/` | 詩一覧 |
+| `/edit/:id` | 詩の編集 |
+| `/view/:id` | 詩の閲覧 |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+※ HashRouter（/#/）は使用しません。  
+Supabase OAuth の戻り値（URL fragment）と衝突するため、**BrowserRouter 前提**です。
+
+---
+
+## 環境変数
+
+### クライアント（CRA）
+
+`.env`
+```env
+REACT_APP_SUPABASE_URL=xxxxxxxxxxxxxxxxxxxx
+REACT_APP_SUPABASE_ANON_KEY=xxxxxxxxxxxxxxxxxxxx
