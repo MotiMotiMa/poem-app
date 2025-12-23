@@ -2,7 +2,7 @@
 // PoemForm.jsx（完成版：UX最適化＋広画面対応＋AI評価保存対応）
 // =======================================================
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 
 import PoemTextarea from "./PoemTextarea";
@@ -43,9 +43,12 @@ export default function PoemForm({
   const [emotion, setEmotion] = useState("light");
   const [tags, setTags] = useState("");
 
-  // ★ AI評価用 state（追加）
   const [aiScore, setAiScore] = useState(0);
   const [aiComment, setAiComment] = useState("");
+
+  const [isTitleSuggested, setIsTitleSuggested] = useState(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -93,6 +96,37 @@ export default function PoemForm({
   }, [title, poem, emotion, tags, poemId]);
 
   // =====================================================
+  // タイトル生成
+  // =====================================================
+  const handleGenerateTitle = async () => {
+    if (!poem.trim()) return;
+
+    setIsGeneratingTitle(true);
+
+    try {
+      const res = await fetch(
+        `${window.location.origin}/api/generate-title`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ poem }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.titles?.[0]) {
+        setTitle(data.titles[0]);
+        setIsTitleSuggested(true);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGeneratingTitle(false);
+    }
+  };
+
+  // =====================================================
   // 編集データ読み込み
   // =====================================================
   useEffect(() => {
@@ -117,7 +151,7 @@ export default function PoemForm({
   }, [poemId, setLoading]);
 
   // =====================================================
-  // 保存処理（★ AI評価も一緒に保存）
+  // 保存処理
   // =====================================================
   const handleSave = async () => {
     if (!user) {
@@ -156,10 +190,12 @@ export default function PoemForm({
   };
 
   // =====================================================
-  // AI評価処理（★ state に流す）
+  // AI評価
   // =====================================================
   const handleEvaluate = async () => {
     if (!poem.trim()) return;
+
+    setIsEvaluating(true);
 
     try {
       const res = await fetch(
@@ -171,13 +207,13 @@ export default function PoemForm({
         }
       );
 
-      if (!res.ok) throw new Error("AI評価失敗");
-
       const data = await res.json();
       setAiScore(data.score ?? 0);
       setAiComment(data.comment ?? "");
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsEvaluating(false);
     }
   };
 
@@ -190,6 +226,7 @@ export default function PoemForm({
         style={{
           position: isWide ? "relative" : "fixed",
           inset: isWide ? "auto" : 0,
+          height: isWide ? "auto" : "100dvh", // ★ スマホ修正の核
           background: palette.bg,
           color: palette.text,
           display: "flex",
@@ -197,7 +234,15 @@ export default function PoemForm({
           zIndex: 9999,
         }}
       >
-        <div style={{ flex: 1, padding: "1rem" }}>
+        {/* ===== スクロール領域 ===== */}
+        <div
+          style={{
+            flex: 1,
+            padding: "1rem",
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
           <PoemTextarea
             value={poem}
             onChange={setPoem}
@@ -207,7 +252,32 @@ export default function PoemForm({
           />
 
           <div style={{ marginTop: "1.5rem" }}>
-            <TitleInput value={title} onChange={setTitle} palette={palette} />
+            <TitleInput
+              value={title}
+              isSuggested={isTitleSuggested}
+              onChange={(v) => {
+                setTitle(v);
+                setIsTitleSuggested(false);
+              }}
+              palette={palette}
+            />
+
+            <button
+              type="button"
+              onClick={handleGenerateTitle}
+              disabled={isGeneratingTitle}
+              style={{
+                marginBottom: "1rem",
+                opacity: isGeneratingTitle ? 0.5 : 0.8,
+                background: "none",
+                border: "none",
+                color: palette.text,
+                cursor: "pointer",
+              }}
+            >
+              仮タイトルを生成
+            </button>
+
             <EmotionSelect
               value={emotion}
               onChange={setEmotion}
@@ -217,6 +287,7 @@ export default function PoemForm({
           </div>
         </div>
 
+        {/* ===== 固定フッター ===== */}
         <div
           style={{
             padding: "0.75rem",
@@ -258,6 +329,46 @@ export default function PoemForm({
           </button>
         </div>
       </div>
+
+      {/* ===== AI評価オーバーレイ ===== */}
+      {isEvaluating && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.15)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: palette.bg2,
+              padding: "1.2rem 1.4rem",
+              borderRadius: "18px",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.6rem",
+              color: palette.text,
+            }}
+          >
+            <span
+              style={{
+                width: "18px",
+                height: "18px",
+                border: `2px solid ${palette.text}`,
+                borderTopColor: "transparent",
+                borderRadius: "50%",
+                animation: "spin 1s linear infinite",
+                opacity: 0.6,
+              }}
+            />
+            読後を生成しています
+          </div>
+        </div>
+      )}
 
       {showSavedToast && (
         <div
