@@ -1,5 +1,5 @@
 // =======================================================
-// TitleInput.jsx（仮タイトル対応）
+// TitleInput.jsx（仮タイトル対応・安定版）
 // =======================================================
 
 import React from "react";
@@ -7,7 +7,7 @@ import React from "react";
 export default function TitleInput({
   value,
   onChange,
-  placeholder,
+  placeholder = "タイトル",
   isSuggested,
   palette,
 }) {
@@ -37,6 +37,11 @@ export default function TitleInput({
         onFocus={(e) => {
           e.target.style.border = `1px solid ${palette.primary}`;
           e.target.style.opacity = 1;
+        }}
+        onBlur={(e) => {
+          e.target.style.border = `1px dashed ${
+            isSuggested ? palette.primary : palette.border
+          }`;
         }}
       />
     </div>

@@ -228,13 +228,12 @@ export default function PoemForm({
 
     const onResize = () => {
       const diff = baseHeight - window.innerHeight;
-      setKeyboardOpen(diff > 120); // だいたいキーボード分
+      setKeyboardOpen(diff > 120);
     };
 
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-
 
   // =====================================================
   // JSX
@@ -245,7 +244,7 @@ export default function PoemForm({
         style={{
           position: isWide ? "relative" : "fixed",
           inset: isWide ? "auto" : 0,
-          height: isWide ? "auto" : "100dvh", // ★ スマホ修正の核
+          height: isWide ? "auto" : "100dvh",
           background: palette.bg,
           color: palette.text,
           display: "flex",
@@ -253,7 +252,6 @@ export default function PoemForm({
           zIndex: 9999,
         }}
       >
-        {/* ===== スクロール領域 ===== */}
         <div
           style={{
             flex: 1,
@@ -306,14 +304,11 @@ export default function PoemForm({
           </div>
         </div>
 
-        {/* ===== 固定フッター ===== */}
         <div
           style={{
             padding: "0.75rem",
             background: palette.bg2,
             borderRadius: "18px",
-
-            // ★ 追加
             opacity: keyboardOpen ? 0.55 : 1,
             transition: "opacity 0.25s ease",
             backdropFilter: keyboardOpen ? "blur(2px)" : "none",
@@ -354,7 +349,6 @@ export default function PoemForm({
         </div>
       </div>
 
-      {/* ===== AI評価オーバーレイ ===== */}
       {isEvaluating && (
         <div
           style={{
