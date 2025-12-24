@@ -53,6 +53,7 @@ export default function PoemForm({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [showSavedToast, setShowSavedToast] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   // =====================================================
   // theme / palette
@@ -218,6 +219,24 @@ export default function PoemForm({
   };
 
   // =====================================================
+  // キーボード表示検知（viewport 高さ差）
+  // =====================================================
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const baseHeight = window.innerHeight;
+
+    const onResize = () => {
+      const diff = baseHeight - window.innerHeight;
+      setKeyboardOpen(diff > 120); // だいたいキーボード分
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+
+  // =====================================================
   // JSX
   // =====================================================
   return createPortal(
@@ -293,6 +312,11 @@ export default function PoemForm({
             padding: "0.75rem",
             background: palette.bg2,
             borderRadius: "18px",
+
+            // ★ 追加
+            opacity: keyboardOpen ? 0.55 : 1,
+            transition: "opacity 0.25s ease",
+            backdropFilter: keyboardOpen ? "blur(2px)" : "none",
           }}
         >
           <button

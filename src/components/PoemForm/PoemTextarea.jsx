@@ -6,7 +6,8 @@
 // - 行末フェードアウト（視線誘導）
 // - IME / iOS 安全
 // - 「貼り付けました」検知（onPaste）
-// - 高さ自動調整の伸び縮み揺れを停止（useLayoutEffect + 差分更新）
+// - 高さ自動調整の伸び縮み揺れを停止
+// - ★ iOS キーボード出現時ジャンプ抑制
 // =======================================================
 
 import React, {
@@ -14,6 +15,7 @@ import React, {
   useMemo,
   useState,
   useLayoutEffect,
+  useEffect,
 } from "react";
 
 export default function PoemTextarea({
@@ -28,6 +30,9 @@ export default function PoemTextarea({
   const composingRef = useRef(false);
   const lastHeightRef = useRef(0);
   const rafRef = useRef(null);
+
+  // ★ フォーカス時スクロール暴走防止
+  const focusScrollLockRef = useRef(false);
 
   const [currentLine, setCurrentLine] = useState(1);
 
@@ -47,6 +52,28 @@ export default function PoemTextarea({
     setCurrentLine(before.split("\n").length);
   };
 
+  // ★ フォーカス時ジャンプ抑制（iOS対策）
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    const handleFocus = () => {
+      if (focusScrollLockRef.current) return;
+      focusScrollLockRef.current = true;
+
+      setTimeout(() => {
+        el.scrollIntoView({
+          block: "nearest",
+          inline: "nearest",
+        });
+        focusScrollLockRef.current = false;
+      }, 60);
+    };
+
+    el.addEventListener("focus", handleFocus);
+    return () => el.removeEventListener("focus", handleFocus);
+  }, []);
+
   // 高さ自動調整（揺れ止め）
   useLayoutEffect(() => {
     const el = textareaRef.current;
@@ -54,18 +81,13 @@ export default function PoemTextarea({
     if (composingRef.current) return;
 
     const apply = () => {
-      // まず縮める（autoより安定）
       el.style.height = "0px";
-
-      // scrollHeight を読む
       const next = el.scrollHeight;
 
-      // 1〜2pxの誤差揺れは無視（ここがキモ）
       if (Math.abs(next - lastHeightRef.current) >= 2) {
         el.style.height = `${next}px`;
         lastHeightRef.current = next;
       } else {
-        // ほぼ同じなら前回値を維持
         if (lastHeightRef.current > 0) {
           el.style.height = `${lastHeightRef.current}px`;
         } else {
@@ -75,31 +97,21 @@ export default function PoemTextarea({
       }
     };
 
-    // すぐ1回
     apply();
-
-    // フォント反映など“後から変わる”のを1フレーム拾って確定
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(apply);
 
     return () => cancelAnimationFrame(rafRef.current);
   }, [value]);
 
-  // 貼り付け検知（preventDefaultしない）
+  // 貼り付け検知
   const handlePaste = () => {
     onPasteDetected?.();
     setTimeout(() => updateCurrentLine(), 0);
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        marginBottom: "1.2rem",
-        position: "relative",
-      }}
-    >
-      {/* ---------- 行番号 ---------- */}
+    <div style={{ display: "flex", marginBottom: "1.2rem", position: "relative" }}>
       {poetMode && (
         <div
           style={{
@@ -122,9 +134,7 @@ export default function PoemTextarea({
         </div>
       )}
 
-      {/* ---------- テキストエリアラッパー ---------- */}
       <div style={{ position: "relative", flex: 1 }}>
-        {/* 現在行ハイライト */}
         {poetMode && (
           <div
             style={{
@@ -143,7 +153,6 @@ export default function PoemTextarea({
           />
         )}
 
-        {/* 行末フェードアウト */}
         {poetMode && (
           <div
             style={{
@@ -169,9 +178,7 @@ export default function PoemTextarea({
           onKeyUp={updateCurrentLine}
           onFocus={updateCurrentLine}
           placeholder="ここに詩を書き始めてください…"
-          onCompositionStart={() => {
-            composingRef.current = true;
-          }}
+          onCompositionStart={() => (composingRef.current = true)}
           onCompositionEnd={(e) => {
             composingRef.current = false;
             onChange(e.target.value);
@@ -181,34 +188,27 @@ export default function PoemTextarea({
             position: "relative",
             width: "100%",
             minHeight: "45vh",
-
             paddingTop: "1.1rem",
             paddingBottom: "1.1rem",
             paddingLeft: poetMode ? "0.8rem" : "1.2rem",
             paddingRight: poetMode ? "30%" : "1.2rem",
-
             fontSize: "1.05rem",
             fontFamily: "'YuMincho', serif",
             lineHeight: "1.85",
             letterSpacing: "0.04em",
-
             background: "transparent",
             color: palette.text,
             border: `1px solid ${palette.border}`,
             borderRadius: "14px",
-
             resize: "none",
             overflow: "hidden",
             outline: "none",
-
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
             WebkitOverflowScrolling: "touch",
-
             WebkitUserSelect: "text",
             userSelect: "text",
             WebkitTouchCallout: "default",
-
             zIndex: 2,
           }}
           onFocus={(e) => {
