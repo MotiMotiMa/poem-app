@@ -54,6 +54,8 @@ export default function PoemForm({
   const [saveError, setSaveError] = useState("");
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [titleCandidates, setTitleCandidates] = useState([]);
+
 
   // =====================================================
   // theme / palette
@@ -100,32 +102,32 @@ export default function PoemForm({
   // タイトル生成
   // =====================================================
   const handleGenerateTitle = async () => {
-    if (!poem.trim()) return;
+      if (!poem.trim()) return;
 
-    setIsGeneratingTitle(true);
+      setIsGeneratingTitle(true);
 
-    try {
-      const res = await fetch(
-        `${window.location.origin}/api/generate-title`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ poem }),
+      try {
+        const res = await fetch(
+          `${window.location.origin}/api/generate-title`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ poem }),
+          }
+        );
+
+        const data = await res.json();
+
+        if (Array.isArray(data.titles)) {
+          setTitleCandidates(data.titles);
         }
-      );
-
-      const data = await res.json();
-
-      if (data.titles?.[0]) {
-        setTitle(data.titles[0]);
-        setIsTitleSuggested(true);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsGeneratingTitle(false);
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsGeneratingTitle(false);
-    }
-  };
+    };
+
 
   // =====================================================
   // 編集データ読み込み
@@ -269,7 +271,7 @@ export default function PoemForm({
           />
 
           <div style={{ marginTop: "1.5rem" }}>
-            <TitleInput
+           <TitleInput
               value={title}
               isSuggested={isTitleSuggested}
               onChange={(v) => {
@@ -279,21 +281,17 @@ export default function PoemForm({
               palette={palette}
             />
 
-            <button
-              type="button"
-              onClick={handleGenerateTitle}
-              disabled={isGeneratingTitle}
-              style={{
-                marginBottom: "1rem",
-                opacity: isGeneratingTitle ? 0.5 : 0.8,
-                background: "none",
-                border: "none",
-                color: palette.text,
-                cursor: "pointer",
+            <TitleSuggestions
+              titles={titleCandidates}
+              palette={palette}
+              onSelect={(t) => {
+                setTitle(t);
+                setIsTitleSuggested(true);
+                setTitleCandidates([]);
               }}
-            >
-              仮タイトルを生成
-            </button>
+              onClose={() => setTitleCandidates([])}
+            />
+
 
             <EmotionSelect
               value={emotion}
