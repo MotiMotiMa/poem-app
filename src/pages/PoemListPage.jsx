@@ -15,6 +15,7 @@ import PoemForm from "../components/PoemForm/PoemForm";
 import { loadPoemList, deletePoem } from "../supabase/poemApi";
 import { generatePoemBookPDF } from "../utils/PoemBookPDF";
 
+
 const SCROLL_KEY = "poemListScrollY";
 
 // ---- 年単位PDF生成 ----
@@ -120,9 +121,11 @@ export default function PoemListPage({ theme, setLoading }) {
     }
   };
 
-  useEffect(() => {
-    fetchPoems();
-  }, []);
+ useEffect(() => {
+  fetchPoems();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
 
   // -----------------------------------------------------
   // 保存後
