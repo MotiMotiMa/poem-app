@@ -24,6 +24,19 @@ import PoemForm from "../components/PoemForm/PoemForm";
 import { loadPoemList, deletePoem } from "../supabase/poemApi";
 import { generatePoemBookPDF } from "../../utils/PoemBookPDF";
 
+const generateYearPoemPDF = (poems) => {
+  const now = new Date();
+  const year = now.getFullYear();
+
+  const yearPoems = poems.filter(p => {
+    if (!p.created_at) return false;
+    return new Date(p.created_at).getFullYear() === year;
+  });
+
+  if (!yearPoems.length) return;
+
+  generatePoemBookPDF(yearPoems);
+};
 
 const SCROLL_KEY = "poemListScrollY";
 
@@ -269,6 +282,28 @@ export default function PoemListPage({ theme, setLoading }) {
       >
         詩集として残す
       </button>
+
+      {new Date().getMonth() === 11 && (
+        <button
+          type="button"
+          onClick={() => generateYearPoemPDF(poems)}
+          style={{
+            margin: "0.5rem auto 1.2rem",
+            display: "block",
+            background: "none",
+            border: "none",
+            color: "#666",
+            opacity: 0.35,
+            fontSize: "0.75rem",
+            cursor: "pointer",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = 0.65)}
+          onMouseLeave={e => (e.currentTarget.style.opacity = 0.35)}
+        >
+          今年の詩集を残す
+        </button>
+      )}
+
 
       {readingPoem && (
         <FullscreenReader
