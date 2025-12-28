@@ -5,9 +5,7 @@
 // - 通常タイトル3つ + 攻めすぎタイトル1つ
 // - 評価コメントは「断定しない編集者文体」固定
 // =======================================================
-
 export const config = { runtime: "nodejs" };
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -24,9 +22,6 @@ export default async function handler(req, res) {
     if (!apiKey) {
       return res.status(500).json({ error: "OPENAI_API_KEY not configured" });
     }
-
-    // ここでモデルを一括管理できるように（任意）
-    const model = process.env.OPENAI_MODEL || "gpt-5.2-chat-latest";
 
     // ---------------------------------------------------
     // プロンプト（磨きフェーズ最終確定）
@@ -110,56 +105,56 @@ score は作品の優劣ではなく、残響の強さの内部指標として�
 ${poem}
 `.trim();
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "system",
-            content:
-              "あなたは日本語詩の編集者です。余白、リズム、情景を最優先します。",
-          },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.9,
-        // 節約目的。必要なら増やす
-        max_tokens: 700,
-      }),
-    });
+    const response = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content:
+                "あなたは日本語詩の編集者です。余白、リズム、情景を最優先します。",
+            },
+            { role: "user", content: prompt },
+          ],
+          temperature: 0.9,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const text = await response.text();
       throw new Error(text);
     }
-
     const data = await response.json();
     const raw = data.choices?.[0]?.message?.content;
-
     console.log("AI raw response:", raw);
     console.log("AI full response:", data);
-
     if (!raw) {
       throw new Error("Empty AI response");
     }
 
-    // ---------------------------------------------------
+
+   // ---------------------------------------------------
     // JSON安全抽出（前後にゴミがあっても拾う）
     // ---------------------------------------------------
     let parsed;
     try {
       const match = raw.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("No JSON object found");
+      if (!match) {
+        throw new Error("No JSON object found");
+      }
       parsed = JSON.parse(match[0]);
     } catch (e) {
       console.error("JSON parse failed:", raw);
       throw new Error("Invalid JSON from AI");
     }
-
     return res.status(200).json({
       score: parsed.score ?? null,
       emotion: parsed.emotion ?? "light",
