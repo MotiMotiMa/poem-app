@@ -11,7 +11,6 @@ import TitleSuggestions from "./TitleSuggestions";
 import EmotionSelect from "../EmotionSelect";
 import TagsInput from "./TagsInput";
 
-import { savePoem, loadPoem } from "../../supabase/poemApi";
 import { emotionPalette } from "../../styles/emotionPalette";
 import PoemPDFButton from "./PoemPDFButton";
 
@@ -46,17 +45,15 @@ export default function PoemForm({
   const [emotion, setEmotion] = useState("light");
   const [tags, setTags] = useState("");
 
-  const [aiScore, setAiScore] = useState(0);
-  const [aiComment, setAiComment] = useState("");
+  // const [aiScore, setAiScore] = useState(0);
 
   const [isTitleSuggested, setIsTitleSuggested] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
-  const [isEvaluating, setIsEvaluating] = useState(false);
 
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
-  const [showSavedToast, setShowSavedToast] = useState(false);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  // const [saving, setSaving] = useState(false);
+  // const [saveError, setSaveError] = useState("");
+  // const [showSavedToast, setShowSavedToast] = useState(false);
+  // const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const [titleCandidates, setTitleCandidates] = useState([]);
   const [titleGenError, setTitleGenError] = useState(false);

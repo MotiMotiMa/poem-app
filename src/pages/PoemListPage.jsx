@@ -1,14 +1,5 @@
 // =======================================================
 // PoemListPage.jsx（スマホ最適化・完成版）
-// - モバイルファースト
-// - PoemFormはモード制御
-// - 固定＋ボトム投稿ボタン
-// - 無限ローディング事故防止
-// - 保存完了時のみ PoemForm をクローズ
-// - 一覧復帰時、該当詩カードを一瞬だけハイライト
-// - 一覧復帰時のスクロール位置復元（sessionStorage）
-// - ★削除時は FullscreenReader を強制クローズ
-// - ★ログアウト時は UI を完全クリーンアップ
 // =======================================================
 
 import { useState, useEffect, useMemo } from "react";
@@ -22,23 +13,20 @@ import FullscreenReader from "../components/FullscreenReader";
 import PoemForm from "../components/PoemForm/PoemForm";
 
 import { loadPoemList, deletePoem } from "../supabase/poemApi";
-import { generatePoemBookPDF } from "../../utils/PoemBookPDF";
+import { generatePoemBookPDF } from "../utils/PoemBookPDF";
 
+const SCROLL_KEY = "poemListScrollY";
+
+// ---- 年単位PDF生成 ----
 const generateYearPoemPDF = (poems) => {
-  const now = new Date();
-  const year = now.getFullYear();
-
-  const yearPoems = poems.filter(p => {
+  const year = new Date().getFullYear();
+  const yearPoems = poems.filter((p) => {
     if (!p.created_at) return false;
     return new Date(p.created_at).getFullYear() === year;
   });
-
   if (!yearPoems.length) return;
-
   generatePoemBookPDF(yearPoems);
 };
-
-const SCROLL_KEY = "poemListScrollY";
 
 export default function PoemListPage({ theme, setLoading }) {
   // ---------- theme ----------
@@ -52,9 +40,7 @@ export default function PoemListPage({ theme, setLoading }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    const onResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const onResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -69,14 +55,14 @@ export default function PoemListPage({ theme, setLoading }) {
 
   const [searchText, setSearchText] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
 
   const navigate = useNavigate();
 
   // -----------------------------------------------------
-  // スクロール位置保存
+  // スクロール位置保存 / 復元
   // -----------------------------------------------------
   useEffect(() => {
     const saveScroll = () => {
@@ -86,19 +72,14 @@ export default function PoemListPage({ theme, setLoading }) {
     return () => window.removeEventListener("scroll", saveScroll);
   }, []);
 
-  // -----------------------------------------------------
-  // スクロール位置復元
-  // -----------------------------------------------------
   useEffect(() => {
     const y = sessionStorage.getItem(SCROLL_KEY);
     if (!y) return;
-    requestAnimationFrame(() => {
-      window.scrollTo(0, Number(y));
-    });
+    requestAnimationFrame(() => window.scrollTo(0, Number(y)));
   }, []);
 
   // -----------------------------------------------------
-  // 認証セッション取得
+  // 認証
   // -----------------------------------------------------
   useEffect(() => {
     const init = async () => {
@@ -109,7 +90,7 @@ export default function PoemListPage({ theme, setLoading }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
     });
 
@@ -117,11 +98,10 @@ export default function PoemListPage({ theme, setLoading }) {
   }, []);
 
   // -----------------------------------------------------
-  // ★ ログアウト時のUIクリーンアップ（必須）
+  // ログアウト時クリーンアップ
   // -----------------------------------------------------
   useEffect(() => {
     if (user) return;
-
     setIsFormOpen(false);
     setEditingPoem(null);
     setReadingPoem(null);
@@ -145,41 +125,27 @@ export default function PoemListPage({ theme, setLoading }) {
   }, []);
 
   // -----------------------------------------------------
-  // 保存後（★唯一の完了トリガー）
+  // 保存後
   // -----------------------------------------------------
   const handleSave = async () => {
     await fetchPoems();
-
-    if (editingPoem?.id) {
-      setHighlightPoemId(editingPoem.id);
-    }
-
+    if (editingPoem?.id) setHighlightPoemId(editingPoem.id);
     setEditingPoem(null);
     setIsFormOpen(false);
   };
 
   // -----------------------------------------------------
-  // 削除（★FullscreenReader を必ず閉じる）
+  // 削除
   // -----------------------------------------------------
   const handleDelete = async (id) => {
-    if (!user) {
-      alert("ログインしてください");
-      return;
-    }
+    if (!user) return alert("ログインしてください");
     if (!window.confirm("本当に削除しますか？")) return;
 
     try {
       setLoading(true);
-
-      // ★ UIの後始末（先に閉じる）
       setReadingPoem(null);
-
       const ok = await deletePoem(id);
-      if (!ok) {
-        alert("削除できませんでした");
-        return;
-      }
-
+      if (!ok) return alert("削除できませんでした");
       await fetchPoems();
     } finally {
       setLoading(false);
@@ -196,7 +162,6 @@ export default function PoemListPage({ theme, setLoading }) {
     return poems.filter((p) => {
       if (tagQ && !(p.tags || []).includes(selectedTag)) return false;
       if (!q) return true;
-
       return (
         p.title?.toLowerCase().includes(q) ||
         p.poem?.toLowerCase().includes(q) ||
@@ -204,22 +169,6 @@ export default function PoemListPage({ theme, setLoading }) {
       );
     });
   }, [poems, searchText, selectedTag]);
-
-  // -----------------------------------------------------
-  // ハイライト詩を中央へスクロール
-  // -----------------------------------------------------
-  useEffect(() => {
-    if (!highlightPoemId) return;
-    requestAnimationFrame(() => {
-      const el = document.getElementById(`poem-${highlightPoemId}`);
-      if (!el) return;
-      el.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    });
-  }, [highlightPoemId, filteredPoems]);
 
   // -----------------------------------------------------
   // JSX
@@ -234,11 +183,42 @@ export default function PoemListPage({ theme, setLoading }) {
         color: textColor,
       }}
     >
-      <h1 style={{ textAlign: "center", marginBottom: "1rem" }}>
+      <h1 style={{ textAlign: "center", marginBottom: "0.5rem" }}>
         🌈 詩作成システム
       </h1>
 
       <AuthButtons user={user} />
+
+      {/* 検索トリガー */}
+      {user && (
+        <button
+          onClick={() => setShowSearch((v) => !v)}
+          style={{
+            margin: "0.4rem auto 0.8rem",
+            display: "block",
+            background: "none",
+            border: "none",
+            fontSize: "0.75rem",
+            color: "#666",
+            opacity: 0.55,
+            cursor: "pointer",
+          }}
+        >
+          探す
+        </button>
+      )}
+
+      {/* SearchBar（トグル式） */}
+      {showSearch && (
+        <SearchBar
+          value={searchText}
+          onChange={setSearchText}
+          onClose={() => {
+            setSearchText("");
+            setShowSearch(false);
+          }}
+        />
+      )}
 
       {isFormOpen && (
         <PoemForm
@@ -247,7 +227,6 @@ export default function PoemListPage({ theme, setLoading }) {
           user={user}
           setLoading={setLoading}
           onSaved={handleSave}
-          onTitleConfirmed={() => {}}
         />
       )}
 
@@ -277,8 +256,6 @@ export default function PoemListPage({ theme, setLoading }) {
           fontSize: "0.8rem",
           cursor: "pointer",
         }}
-        onMouseEnter={e => (e.currentTarget.style.opacity = 0.8)}
-        onMouseLeave={e => (e.currentTarget.style.opacity = 0.5)}
       >
         詩集として残す
       </button>
@@ -288,7 +265,7 @@ export default function PoemListPage({ theme, setLoading }) {
           type="button"
           onClick={() => generateYearPoemPDF(poems)}
           style={{
-            margin: "0.5rem auto 1.2rem",
+            margin: "0.4rem auto 1.2rem",
             display: "block",
             background: "none",
             border: "none",
@@ -297,13 +274,10 @@ export default function PoemListPage({ theme, setLoading }) {
             fontSize: "0.75rem",
             cursor: "pointer",
           }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = 0.65)}
-          onMouseLeave={e => (e.currentTarget.style.opacity = 0.35)}
         >
           今年の詩集を残す
         </button>
       )}
-
 
       {readingPoem && (
         <FullscreenReader
@@ -313,7 +287,8 @@ export default function PoemListPage({ theme, setLoading }) {
           theme={safeTheme}
         />
       )}
-     {user && !isFormOpen && (
+
+      {user && !isFormOpen && (
         <button
           onClick={() => {
             setEditingPoem(null);

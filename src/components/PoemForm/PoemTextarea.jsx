@@ -168,7 +168,7 @@ export default function PoemTextarea({
           />
         )}
 
-        <textarea
+       <textarea
           ref={textareaRef}
           value={value}
           autoFocus={autoFocus}
@@ -176,7 +176,15 @@ export default function PoemTextarea({
           onPaste={handlePaste}
           onClick={updateCurrentLine}
           onKeyUp={updateCurrentLine}
-          onFocus={updateCurrentLine}
+          onFocus={(e) => {
+            updateCurrentLine();
+            e.target.style.border = `1px solid ${palette.primary}`;
+            e.target.style.boxShadow = `0 0 0 3px ${palette.focusShadow}`;
+          }}
+          onBlur={(e) => {
+            e.target.style.border = `1px solid ${palette.border}`;
+            e.target.style.boxShadow = "none";
+          }}
           placeholder="ここに詩を書き始めてください…"
           onCompositionStart={() => (composingRef.current = true)}
           onCompositionEnd={(e) => {
@@ -211,15 +219,8 @@ export default function PoemTextarea({
             WebkitTouchCallout: "default",
             zIndex: 2,
           }}
-          onFocus={(e) => {
-            e.target.style.border = `1px solid ${palette.primary}`;
-            e.target.style.boxShadow = `0 0 0 3px ${palette.focusShadow}`;
-          }}
-          onBlur={(e) => {
-            e.target.style.border = `1px solid ${palette.border}`;
-            e.target.style.boxShadow = "none";
-          }}
         />
+
       </div>
     </div>
   );
