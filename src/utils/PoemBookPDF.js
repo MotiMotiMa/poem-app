@@ -1,54 +1,71 @@
+// =======================================================
+// PoemBookPDF.js
+// =======================================================
+
 import jsPDF from "jspdf";
-import fontData from "../fonts/NotoSansJP-VariableFont_wght-normal.js";
 
-// フォント登録
-function registerFont(pdf) {
-  pdf.addFileToVFS("NotoSansJP.ttf", fontData);
-  pdf.addFont("NotoSansJP.ttf", "NotoSansJP", "normal");
-}
+export function generatePoemBookPDF(poems = []) {
+  if (!poems.length) return;
 
-export function generatePoemBookPDF(poems) {
+  // ---------------------------------------------
+  // 日付（PDF名用）
+  // ---------------------------------------------
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const fileName = `poems-${year}-${month}.pdf`;
+
+  // ---------------------------------------------
+  // 時系列順に並び替え（古い → 新しい）
+  // created_at がなければ配列順を信用
+  // ---------------------------------------------
+  const sortedPoems = [...poems].sort((a, b) => {
+    if (!a.created_at || !b.created_at) return 0;
+    return new Date(a.created_at) - new Date(b.created_at);
+  });
+
   const pdf = new jsPDF({
-    unit: "pt",
+    unit: "mm",
     format: "a4",
   });
 
-  registerFont(pdf);
-  pdf.setFont("NotoSansJP");
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
 
-  const lineHeight = 20;
-  const margin = 50;
-  let y = margin;
-
-  poems.forEach((p, index) => {
-    if (index !== 0) pdf.addPage();
-
-    pdf.setFontSize(18);
-    pdf.text(p.title || "（無題）", margin, y);
-    y += 30;
-
-    pdf.setFontSize(12);
-
-    const lines = pdf.splitTextToSize(p.poem || "", 500);
-    lines.forEach((line) => {
-      pdf.text(line, margin, y);
-      y += lineHeight;
-    });
-
-    y += 20;
-    pdf.setFontSize(10);
-
-    pdf.text(`emotion: ${p.emotion || ""}`, margin, y);
-    y += lineHeight;
-    pdf.text(`score: ${p.score || ""}`, margin, y);
-    y += lineHeight;
-
-    if (p.tags && p.tags.length > 0) {
-      pdf.text(`tags: ${p.tags.join(", ")}`, margin, y);
-    }
-
-    y = margin;
+  // =====================================================
+  // 表紙ページ
+  // =====================================================
+  pdf.setFontSize(20);
+  pdf.text("Poem Book", pageWidth / 2, pageHeight / 2 - 10, {
+    align: "center",
   });
 
-  pdf.save("Poem_Collection.pdf");
+  pdf.setFontSize(12);
+  pdf.text(
+    `${year}.${month}`,
+    pageWidth / 2,
+    pageHeight / 2 + 10,
+    { align: "center" }
+  );
+
+  // =====================================================
+  // 本文ページ
+  // =====================================================
+  sortedPoems.forEach((p, index) => {
+    pdf.addPage();
+
+    let y = 25;
+
+    // タイトル
+    pdf.setFontSize(16);
+    pdf.text(p.title || "（無題）", 20, y);
+    y += 10;
+
+    // 本文
+    pdf.setFontSize(11);
+    const body = pdf.splitTextToSize(p.poem || "", pageWidth - 40);
+    pdf.text(body, 20, y);
+  });
+
+  pdf.save(fileName);
 }

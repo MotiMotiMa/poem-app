@@ -13,6 +13,8 @@ import TagsInput from "./TagsInput";
 
 import { savePoem, loadPoem } from "../../supabase/poemApi";
 import { emotionPalette } from "../../styles/emotionPalette";
+import PoemPDFButton from "./PoemPDFButton";
+
 
 const DRAFT_KEY = "poem_draft_v1";
 
@@ -57,7 +59,9 @@ export default function PoemForm({
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const [titleCandidates, setTitleCandidates] = useState([]);
-  const [titleGenError, setTitleGenError] = useState(false); // ★追加
+  const [titleGenError, setTitleGenError] = useState(false);
+  const [showRetry, setShowRetry] = useState(false);
+  const [retryUsed, setRetryUsed] = useState(false); // ★ 追加（再試行1回制限）
 
   // =====================================================
   // theme / palette
@@ -108,6 +112,7 @@ export default function PoemForm({
 
     setIsGeneratingTitle(true);
     setTitleGenError(false);
+    setShowRetry(false);
     setTitleCandidates([]);
 
     try {
@@ -125,7 +130,6 @@ export default function PoemForm({
       const data = await res.json();
 
       if (Array.isArray(data.titles)) {
-        // ★ 候補が1つだけなら自動確定
         if (data.titles.length === 1) {
           const only = data.titles[0];
           setTimeout(() => {
@@ -141,124 +145,22 @@ export default function PoemForm({
       console.error(e);
       setTitleGenError(true);
 
-      // ★ 赤く揺れてから消す
       setTimeout(() => {
-        setIsGeneratingTitle(false);
         setTitleGenError(false);
+        setIsGeneratingTitle(false);
+
+        // ★ 再試行は1回だけ
+        if (!retryUsed) {
+          setShowRetry(true);
+          setRetryUsed(true);
+          setTimeout(() => setShowRetry(false), 3000);
+        }
       }, 900);
       return;
     }
 
     setIsGeneratingTitle(false);
   };
-
-  // =====================================================
-  // 編集データ読み込み
-  // =====================================================
-  useEffect(() => {
-    async function fetchPoem() {
-      if (!poemId) return;
-      setLoading(true);
-      try {
-        const p = await loadPoem(poemId);
-        if (p) {
-          setTitle(p.title || "");
-          setPoem(p.poem || "");
-          setEmotion(p.emotion || "light");
-          setTags((p.tags || []).join(","));
-          setAiScore(p.score ?? 0);
-          setAiComment(p.comment ?? "");
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchPoem();
-  }, [poemId, setLoading]);
-
-  // =====================================================
-  // 保存処理
-  // =====================================================
-  const handleSave = async () => {
-    if (!user) {
-      setSaveError("ログインが必要です");
-      return;
-    }
-    if (!poem.trim()) {
-      setSaveError("本文が空です");
-      return;
-    }
-
-    setSaving(true);
-    setSaveError("");
-
-    try {
-      const ok = await savePoem(poemId, {
-        title,
-        poem,
-        emotion,
-        score: aiScore,
-        comment: aiComment,
-        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
-      });
-
-      if (!ok) {
-        setSaveError("保存に失敗しました");
-        return;
-      }
-
-      localStorage.removeItem(DRAFT_KEY);
-      setShowSavedToast(true);
-      setTimeout(() => onSaved?.(), 900);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // =====================================================
-  // AI評価
-  // =====================================================
-  const handleEvaluate = async () => {
-    if (!poem.trim()) return;
-
-    setIsEvaluating(true);
-
-    try {
-      const res = await fetch(
-        `${window.location.origin}/api/evaluate-poem`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ poem }),
-        }
-      );
-
-      const data = await res.json();
-      setAiScore(data.score ?? 0);
-      setAiComment(data.comment ?? "");
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsEvaluating(false);
-    }
-  };
-
-  // =====================================================
-  // キーボード表示検知
-  // =====================================================
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const baseHeight = window.innerHeight;
-
-    const onResize = () => {
-      const diff = baseHeight - window.innerHeight;
-      setKeyboardOpen(diff > 120);
-    };
-
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
 
   // =====================================================
   // JSX
@@ -322,7 +224,7 @@ export default function PoemForm({
               onClick={handleGenerateTitle}
               disabled={isGeneratingTitle}
               style={{
-                marginBottom: "0.8rem",
+                marginBottom: "0.4rem",
                 background: "none",
                 border: "none",
                 color: palette.text,
@@ -363,6 +265,30 @@ export default function PoemForm({
               )}
             </button>
 
+            {showRetry && (
+              <div
+                onClick={() => {
+                  setShowRetry(false);
+                  handleGenerateTitle();
+                }}
+                style={{
+                  fontSize: "0.75rem",
+                  color: palette.text,
+                  opacity: 0.5,
+                  cursor: "pointer",
+                  marginBottom: "0.6rem",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.opacity = 0.8)
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.opacity = 0.5)
+                }
+              >
+                もう一度だけ
+              </div>
+            )}
+
             <TitleSuggestions
               titles={titleCandidates}
               palette={palette}
@@ -380,109 +306,20 @@ export default function PoemForm({
               palette={palette}
             />
             <TagsInput value={tags} onChange={setTags} palette={palette} />
+           <PoemPDFButton
+                title={title}
+                poem={poem}
+                emotion={emotion}
+                score={aiScore}
+                tags={tags
+                  .split(",")
+                  .map(t => t.trim())
+                  .filter(Boolean)}
+                palette={palette}
+            />
           </div>
-        </div>
-
-        <div
-          style={{
-            padding: "0.75rem",
-            background: palette.bg2,
-            borderRadius: "18px",
-            opacity: keyboardOpen ? 0.55 : 1,
-            transition: "opacity 0.25s ease",
-            backdropFilter: keyboardOpen ? "blur(2px)" : "none",
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || !user}
-            style={{
-              width: "100%",
-              borderRadius: "14px",
-              background: palette.main,
-              color: "#fff",
-              padding: "0.7rem",
-              border: "none",
-              fontWeight: "bold",
-            }}
-          >
-            {saving ? "保存しています…" : "保存する"}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleEvaluate}
-            style={{
-              width: "100%",
-              marginTop: "0.6rem",
-              borderRadius: "14px",
-              background: "transparent",
-              border: `1px solid ${palette.border}`,
-              color: palette.text,
-              padding: "0.6rem",
-            }}
-          >
-            AI評価
-          </button>
         </div>
       </div>
-
-      {isEvaluating && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.15)",
-            zIndex: 10000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              background: palette.bg2,
-              padding: "1.2rem 1.4rem",
-              borderRadius: "18px",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.6rem",
-              color: palette.text,
-            }}
-          >
-            <span
-              style={{
-                width: "18px",
-                height: "18px",
-                border: `2px solid ${palette.text}`,
-                borderTopColor: "transparent",
-                borderRadius: "50%",
-                animation: "spin 1s linear infinite",
-                opacity: 0.6,
-              }}
-            />
-            読後を生成しています
-          </div>
-        </div>
-      )}
-
-      {showSavedToast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "6rem",
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: palette.bg2,
-            padding: "0.6rem 1rem",
-            borderRadius: "18px",
-            zIndex: 10002,
-          }}
-        >
-          ✓ 保存しました
-        </div>
-      )}
     </>,
     document.body
   );

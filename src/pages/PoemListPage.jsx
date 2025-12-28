@@ -22,6 +22,8 @@ import FullscreenReader from "../components/FullscreenReader";
 import PoemForm from "../components/PoemForm/PoemForm";
 
 import { loadPoemList, deletePoem } from "../supabase/poemApi";
+import { generatePoemBookPDF } from "../../utils/PoemBookPDF";
+
 
 const SCROLL_KEY = "poemListScrollY";
 
@@ -248,6 +250,25 @@ export default function PoemListPage({ theme, setLoading }) {
           theme={safeTheme}
         />
       )}
+
+      <button
+        type="button"
+        onClick={() => generatePoemBookPDF(poems)}
+        style={{
+          margin: "1rem auto",
+          display: "block",
+          background: "none",
+          border: "none",
+          color: "#666",
+          opacity: 0.5,
+          fontSize: "0.8rem",
+          cursor: "pointer",
+        }}
+        onMouseEnter={e => (e.currentTarget.style.opacity = 0.8)}
+        onMouseLeave={e => (e.currentTarget.style.opacity = 0.5)}
+      >
+        詩集として残す
+      </button>
 
       {readingPoem && (
         <FullscreenReader
