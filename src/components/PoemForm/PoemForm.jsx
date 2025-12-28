@@ -57,6 +57,7 @@ export default function PoemForm({
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const [titleCandidates, setTitleCandidates] = useState([]);
+  const [titleGenError, setTitleGenError] = useState(false); // ★追加
 
   // =====================================================
   // theme / palette
@@ -106,6 +107,7 @@ export default function PoemForm({
     if (!poem.trim()) return;
 
     setIsGeneratingTitle(true);
+    setTitleGenError(false);
     setTitleCandidates([]);
 
     try {
@@ -118,30 +120,36 @@ export default function PoemForm({
         }
       );
 
+      if (!res.ok) throw new Error("generate-title failed");
+
       const data = await res.json();
 
-     if (Array.isArray(data.titles)) {
-  // ★ 候補が1つだけなら自動確定
-  if (data.titles.length === 1) {
-    const only = data.titles[0];
-
-    // 生成した「間」を感じさせるために少しだけ待つ
-    setTimeout(() => {
-      setTitle(only);
-      setIsTitleSuggested(true);
-      setTitleCandidates([]);
-    }, 220);
-  } else {
-    // ★ 複数あるときだけ候補リスト表示
-    setTitleCandidates(data.titles);
-  }
-}
-
+      if (Array.isArray(data.titles)) {
+        // ★ 候補が1つだけなら自動確定
+        if (data.titles.length === 1) {
+          const only = data.titles[0];
+          setTimeout(() => {
+            setTitle(only);
+            setIsTitleSuggested(true);
+            setTitleCandidates([]);
+          }, 220);
+        } else {
+          setTitleCandidates(data.titles);
+        }
+      }
     } catch (e) {
       console.error(e);
-    } finally {
-      setIsGeneratingTitle(false);
+      setTitleGenError(true);
+
+      // ★ 赤く揺れてから消す
+      setTimeout(() => {
+        setIsGeneratingTitle(false);
+        setTitleGenError(false);
+      }, 900);
+      return;
     }
+
+    setIsGeneratingTitle(false);
   };
 
   // =====================================================
@@ -257,6 +265,19 @@ export default function PoemForm({
   // =====================================================
   return createPortal(
     <>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes shake {
+          0% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          50% { transform: translateX(4px); }
+          75% { transform: translateX(-3px); }
+          100% { transform: translateX(0); }
+        }
+      `}</style>
+
       <div
         style={{
           position: isWide ? "relative" : "fixed",
@@ -309,7 +330,37 @@ export default function PoemForm({
                 cursor: "pointer",
               }}
             >
-              {isGeneratingTitle ? "生成中…" : "仮タイトルを生成"}
+              {isGeneratingTitle && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    fontSize: "0.85rem",
+                    opacity: titleGenError ? 0.8 : 0.65,
+                    color: titleGenError ? "#c44545" : palette.text,
+                    animation: titleGenError ? "shake 0.4s ease" : "none",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "14px",
+                      height: "14px",
+                      border: `2px solid ${
+                        titleGenError ? "#c44545" : palette.text
+                      }`,
+                      borderTopColor: "transparent",
+                      borderRadius: "50%",
+                      animation: titleGenError
+                        ? "none"
+                        : "spin 0.9s linear infinite",
+                    }}
+                  />
+                  {titleGenError
+                    ? "うまく掴めませんでした"
+                    : "タイトルを考えています"}
+                </div>
+              )}
             </button>
 
             <TitleSuggestions
