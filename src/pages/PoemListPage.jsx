@@ -13,21 +13,9 @@ import FullscreenReader from "../components/FullscreenReader";
 import PoemForm from "../components/PoemForm/PoemForm";
 
 import { loadPoemList, deletePoem } from "../supabase/poemApi";
-import { generatePoemBookPDF } from "../utils/PoemBookPDF";
-
+import { generateYearPoemBookPDF } from "../utils/PoemBookPDF";
 
 const SCROLL_KEY = "poemListScrollY";
-
-// ---- 年単位PDF生成 ----
-const generateYearPoemPDF = (poems) => {
-  const year = new Date().getFullYear();
-  const yearPoems = poems.filter((p) => {
-    if (!p.created_at) return false;
-    return new Date(p.created_at).getFullYear() === year;
-  });
-  if (!yearPoems.length) return;
-  generatePoemBookPDF(yearPoems);
-};
 
 export default function PoemListPage({ theme, setLoading }) {
   // ---------- theme ----------
@@ -121,11 +109,10 @@ export default function PoemListPage({ theme, setLoading }) {
     }
   };
 
- useEffect(() => {
-  fetchPoems();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-
+  useEffect(() => {
+    fetchPoems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // -----------------------------------------------------
   // 保存後
@@ -165,6 +152,7 @@ export default function PoemListPage({ theme, setLoading }) {
     return poems.filter((p) => {
       if (tagQ && !(p.tags || []).includes(selectedTag)) return false;
       if (!q) return true;
+
       return (
         p.title?.toLowerCase().includes(q) ||
         p.poem?.toLowerCase().includes(q) ||
@@ -172,6 +160,14 @@ export default function PoemListPage({ theme, setLoading }) {
       );
     });
   }, [poems, searchText, selectedTag]);
+
+  // -----------------------------------------------------
+  // 年単位PDF生成
+  // -----------------------------------------------------
+  const handleYearPDF = () => {
+    const year = new Date().getFullYear();
+    generateYearPoemBookPDF(poems, year);
+  };
 
   // -----------------------------------------------------
   // JSX
@@ -192,7 +188,6 @@ export default function PoemListPage({ theme, setLoading }) {
 
       <AuthButtons user={user} />
 
-      {/* 検索トリガー */}
       {user && (
         <button
           onClick={() => setShowSearch((v) => !v)}
@@ -211,7 +206,6 @@ export default function PoemListPage({ theme, setLoading }) {
         </button>
       )}
 
-      {/* SearchBar（トグル式） */}
       {showSearch && (
         <SearchBar
           value={searchText}
@@ -246,9 +240,10 @@ export default function PoemListPage({ theme, setLoading }) {
         />
       )}
 
+      {/* ★ 年単位PDF */}
       <button
         type="button"
-        onClick={() => generatePoemBookPDF(poems)}
+        onClick={handleYearPDF}
         style={{
           margin: "1rem auto",
           display: "block",
@@ -260,27 +255,8 @@ export default function PoemListPage({ theme, setLoading }) {
           cursor: "pointer",
         }}
       >
-        詩集として残す
+        今年の詩集を残す
       </button>
-
-      {new Date().getMonth() === 11 && (
-        <button
-          type="button"
-          onClick={() => generateYearPoemPDF(poems)}
-          style={{
-            margin: "0.4rem auto 1.2rem",
-            display: "block",
-            background: "none",
-            border: "none",
-            color: "#666",
-            opacity: 0.35,
-            fontSize: "0.75rem",
-            cursor: "pointer",
-          }}
-        >
-          今年の詩集を残す
-        </button>
-      )}
 
       {readingPoem && (
         <FullscreenReader
