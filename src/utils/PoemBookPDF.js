@@ -1,17 +1,17 @@
 // =======================================================
 // PoemBookPDF.js
-// - 年単位PDF生成
+// - 単体PDF生成（generateSinglePoemPDF）
+// - 年単位PDF生成（generateYearPoemBookPDF）
 // - 年サブタイトル自動生成（感情軸ベース）
 // - 日本語完全対応
-// - ★ year 未指定でも必ず保存される安全版
 // =======================================================
 
 import jsPDF from "jspdf";
 import { NotoSansJPRegular } from "../assets/fonts/NotoSansJP-Regular.base64";
 
-// ---------------------------------------------
-// エモーショナル軸（確定版）
-// ---------------------------------------------
+// =======================================================
+// エモーショナル軸（確定）
+// =======================================================
 const EMOTIONAL_AXES = {
   Light: ["光", "明", "白", "晴", "朝"],
   Dark: ["闇", "影", "夜", "黒", "沈"],
@@ -22,9 +22,9 @@ const EMOTIONAL_AXES = {
   Growth: ["芽", "育", "伸", "始", "生"],
 };
 
-// ---------------------------------------------
+// =======================================================
 // 年サブタイトル自動生成
-// ---------------------------------------------
+// =======================================================
 function generateYearSubtitle(poems) {
   const text = poems
     .map(p => `${p.title || ""} ${p.poem || ""}`)
@@ -52,20 +52,51 @@ function generateYearSubtitle(poems) {
   return `── ${poems.length} poems ──`;
 }
 
-// ---------------------------------------------
-// ★ 年単位PDF生成（安全版）
-// ---------------------------------------------
-export function generatePoemBookPDF(poems = [], year) {
-  if (!poems.length) return;
+// =======================================================
+// ★ 単体PDF生成
+// =======================================================
+export function generateSinglePoemPDF(poem) {
+  if (!poem?.poem) return;
 
-  // ★ year が未指定でも自動決定
-  const targetYear =
-    year ??
-    new Date(poems[0]?.created_at ?? Date.now()).getFullYear();
+  const pdf = new jsPDF({ unit: "mm", format: "a4" });
+
+  // 日本語フォント
+  pdf.addFileToVFS("NotoSansJP-Regular.ttf", NotoSansJPRegular);
+  pdf.addFont("NotoSansJP-Regular.ttf", "NotoJP", "normal");
+  pdf.setFont("NotoJP", "normal");
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  let y = 30;
+
+  // タイトル
+  pdf.setFontSize(18);
+  pdf.text(poem.title || "（無題）", pageWidth / 2, y, {
+    align: "center",
+  });
+  y += 15;
+
+  // 本文
+  pdf.setFontSize(11);
+  const body = pdf.splitTextToSize(poem.poem, pageWidth - 40);
+  pdf.text(body, 20, y);
+
+  const now = new Date();
+  const fileName = `poem-${now.getFullYear()}-${String(
+    now.getMonth() + 1
+  ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.pdf`;
+
+  pdf.save(fileName);
+}
+
+// =======================================================
+// ★ 年単位PDF生成
+// =======================================================
+export function generateYearPoemBookPDF(poems = [], year) {
+  if (!poems.length || !year) return;
 
   const yearPoems = poems.filter(p => {
     if (!p.created_at) return false;
-    return new Date(p.created_at).getFullYear() === targetYear;
+    return new Date(p.created_at).getFullYear() === year;
   });
 
   if (!yearPoems.length) return;
@@ -74,14 +105,9 @@ export function generatePoemBookPDF(poems = [], year) {
     (a, b) => new Date(a.created_at) - new Date(b.created_at)
   );
 
-  const pdf = new jsPDF({
-    unit: "mm",
-    format: "a4",
-  });
+  const pdf = new jsPDF({ unit: "mm", format: "a4" });
 
-  // ---------------------------------------------
-  // 日本語フォント登録
-  // ---------------------------------------------
+  // 日本語フォント
   pdf.addFileToVFS("NotoSansJP-Regular.ttf", NotoSansJPRegular);
   pdf.addFont("NotoSansJP-Regular.ttf", "NotoJP", "normal");
   pdf.setFont("NotoJP", "normal");
@@ -89,9 +115,7 @@ export function generatePoemBookPDF(poems = [], year) {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
 
-  // =====================================================
   // 表紙
-  // =====================================================
   pdf.setFontSize(22);
   pdf.text("Poem Book", pageWidth / 2, pageHeight / 2 - 24, {
     align: "center",
@@ -104,13 +128,11 @@ export function generatePoemBookPDF(poems = [], year) {
   });
 
   pdf.setFontSize(12);
-  pdf.text(`${targetYear}`, pageWidth / 2, pageHeight / 2 + 10, {
+  pdf.text(`${year}`, pageWidth / 2, pageHeight / 2 + 10, {
     align: "center",
   });
 
-  // =====================================================
   // 本文
-  // =====================================================
   sortedPoems.forEach(p => {
     pdf.addPage();
     let y = 25;
@@ -134,8 +156,5 @@ export function generatePoemBookPDF(poems = [], year) {
     pdf.text(body, 20, y);
   });
 
-  // =====================================================
-  // 保存
-  // =====================================================
-  pdf.save(`poems-${targetYear}.pdf`);
+  pdf.save(`poems-${year}.pdf`);
 }

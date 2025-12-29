@@ -1,9 +1,8 @@
 // =======================================================
 // PoemForm.jsx（完成版：UX最適化＋広画面対応＋AI評価保存対応）
-// - 以前の下部固定ボタンUIに復帰
-// - 保存トースト復帰
-// - AI評価中オーバーレイ復帰
-// - PDFボタンも下部バーに復帰（PoemPDFButton）
+// - タイトル生成UI完全復帰
+// - 候補1件時は自動確定
+// - 候補複数時のみ選択UI表示
 // =======================================================
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -110,7 +109,7 @@ export default function PoemForm({
   // =====================================================
   const handleGenerateTitle = async () => {
     if (!poem.trim()) return;
-
+    const API_BASE = process.env.REACT_APP_API_BASE_URL || "";
     setIsGeneratingTitle(true);
     setTitleGenError(false);
     setTitleCandidates([]);
@@ -130,6 +129,7 @@ export default function PoemForm({
       const data = await res.json();
 
       if (Array.isArray(data.titles)) {
+        // ★ 候補が1件 → 自動確定
         if (data.titles.length === 1) {
           const only = data.titles[0];
           setTimeout(() => {
@@ -137,14 +137,15 @@ export default function PoemForm({
             setIsTitleSuggested(true);
             setTitleCandidates([]);
           }, 220);
-        } else {
+        } 
+        // ★ 複数 → 選択UI表示
+        else if (data.titles.length > 1) {
           setTitleCandidates(data.titles);
         }
       }
     } catch (e) {
       console.error(e);
       setTitleGenError(true);
-
       setTimeout(() => {
         setIsGeneratingTitle(false);
         setTitleGenError(false);
@@ -202,10 +203,7 @@ export default function PoemForm({
         emotion,
         score: aiScore,
         comment: aiComment,
-        tags: tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
+        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
       });
 
       if (!ok) {
@@ -226,7 +224,6 @@ export default function PoemForm({
   // =====================================================
   const handleEvaluate = async () => {
     if (!poem.trim()) return;
-
     setIsEvaluating(true);
 
     try {
@@ -238,9 +235,7 @@ export default function PoemForm({
           body: JSON.stringify({ poem }),
         }
       );
-
-      if (!res.ok) throw new Error("evaluate-poem failed");
-
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setAiScore(data.score ?? 0);
       setAiComment(data.comment ?? "");
@@ -255,15 +250,10 @@ export default function PoemForm({
   // キーボード表示検知
   // =====================================================
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
     const baseHeight = window.innerHeight;
-
     const onResize = () => {
-      const diff = baseHeight - window.innerHeight;
-      setKeyboardOpen(diff > 120);
+      setKeyboardOpen(baseHeight - window.innerHeight > 120);
     };
-
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -296,14 +286,7 @@ export default function PoemForm({
           zIndex: 9999,
         }}
       >
-        <div
-          style={{
-            flex: 1,
-            padding: "1rem",
-            overflowY: "auto",
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
+        <div style={{ flex: 1, padding: "1rem", overflowY: "auto" }}>
           <PoemTextarea
             value={poem}
             onChange={setPoem}
@@ -323,69 +306,6 @@ export default function PoemForm({
               palette={palette}
             />
 
-            {/* ===============================
-    タイトル自動生成ボタン
-=============================== */}
-<button
-  type="button"
-  onClick={handleGenerateTitle}
-  disabled={isGeneratingTitle}
-  style={{
-    marginBottom: "0.8rem",
-    background: "none",
-    border: "none",
-    color: palette.text,
-    opacity: isGeneratingTitle ? 0.5 : 0.7,
-    cursor: "pointer",
-  }}
->
-  {isGeneratingTitle && (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "0.5rem",
-        fontSize: "0.85rem",
-        opacity: titleGenError ? 0.8 : 0.65,
-        color: titleGenError ? "#c44545" : palette.text,
-        animation: titleGenError ? "shake 0.4s ease" : "none",
-      }}
-    >
-      <span
-        style={{
-          width: "14px",
-          height: "14px",
-          border: `2px solid ${
-            titleGenError ? "#c44545" : palette.text
-          }`,
-          borderTopColor: "transparent",
-          borderRadius: "50%",
-          animation: titleGenError
-            ? "none"
-            : "spin 0.9s linear infinite",
-        }}
-      />
-      {titleGenError
-        ? "うまく掴めませんでした"
-        : "タイトルを考えています"}
-    </div>
-  )}
-</button>
-
-{/* ===============================
-    タイトル候補表示
-=============================== */}
-<TitleSuggestions
-  titles={titleCandidates}
-  palette={palette}
-  onSelect={(t) => {
-    setTitle(t);
-    setIsTitleSuggested(true);
-    setTitleCandidates([]);
-  }}
-  onClose={() => setTitleCandidates([])}
-/>
-
             <button
               type="button"
               onClick={handleGenerateTitle}
@@ -396,39 +316,25 @@ export default function PoemForm({
                 border: "none",
                 color: palette.text,
                 opacity: isGeneratingTitle ? 0.5 : 0.7,
+                fontSize: "0.85rem",
                 cursor: "pointer",
               }}
             >
+              {!isGeneratingTitle && "タイトルを生成する"}
               {isGeneratingTitle && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    fontSize: "0.85rem",
-                    opacity: titleGenError ? 0.8 : 0.65,
-                    color: titleGenError ? "#c44545" : palette.text,
-                    animation: titleGenError ? "shake 0.4s ease" : "none",
-                  }}
-                >
+                <span style={{ display: "flex", gap: "0.5rem" }}>
                   <span
                     style={{
-                      width: "14px",
-                      height: "14px",
-                      border: `2px solid ${
-                        titleGenError ? "#c44545" : palette.text
-                      }`,
+                      width: 14,
+                      height: 14,
+                      border: `2px solid ${palette.text}`,
                       borderTopColor: "transparent",
                       borderRadius: "50%",
-                      animation: titleGenError
-                        ? "none"
-                        : "spin 0.9s linear infinite",
+                      animation: "spin 0.9s linear infinite",
                     }}
                   />
-                  {titleGenError
-                    ? "うまく掴めませんでした"
-                    : "タイトルを考えています"}
-                </div>
+                  タイトルを考えています
+                </span>
               )}
             </button>
 
@@ -443,33 +349,19 @@ export default function PoemForm({
               onClose={() => setTitleCandidates([])}
             />
 
-            <EmotionSelect
-              value={emotion}
-              onChange={setEmotion}
-              palette={palette}
-            />
+            <EmotionSelect value={emotion} onChange={setEmotion} palette={palette} />
             <TagsInput value={tags} onChange={setTags} palette={palette} />
 
             {saveError && (
-              <div style={{ color: "#c44545", fontSize: "0.85rem", marginTop: "0.7rem" }}>
+              <div style={{ color: "#c44545", fontSize: "0.85rem" }}>
                 {saveError}
               </div>
             )}
           </div>
         </div>
 
-        <div
-          style={{
-            padding: "0.75rem",
-            background: palette.bg2,
-            borderRadius: "18px",
-            opacity: keyboardOpen ? 0.55 : 1,
-            transition: "opacity 0.25s ease",
-            backdropFilter: keyboardOpen ? "blur(2px)" : "none",
-          }}
-        >
+        <div style={{ padding: "0.75rem", background: palette.bg2 }}>
           <button
-            type="button"
             onClick={handleSave}
             disabled={saving || !user}
             style={{
@@ -480,14 +372,12 @@ export default function PoemForm({
               padding: "0.7rem",
               border: "none",
               fontWeight: "bold",
-              cursor: saving ? "default" : "pointer",
             }}
           >
             {saving ? "保存しています…" : "保存する"}
           </button>
 
           <button
-            type="button"
             onClick={handleEvaluate}
             style={{
               width: "100%",
@@ -497,83 +387,23 @@ export default function PoemForm({
               border: `1px solid ${palette.border}`,
               color: palette.text,
               padding: "0.6rem",
-              cursor: "pointer",
             }}
           >
             AI評価
           </button>
 
-          <div style={{ marginTop: "0.6rem" }}>
-            <PoemPDFButton
-              title={title}
-              poem={poem}
-              emotion={emotion}
-              score={aiScore}
-              tags={tags
-                .split(",")
-                .map((t) => t.trim())
-                .filter(Boolean)}
-              palette={palette}
-            />
-          </div>
+          <PoemPDFButton
+            poem={{
+              title,
+              poem,
+              emotion,
+              score: aiScore,
+              tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+            }}
+          />
+
         </div>
       </div>
-
-      {isEvaluating && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.15)",
-            zIndex: 10000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              background: palette.bg2,
-              padding: "1.2rem 1.4rem",
-              borderRadius: "18px",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.6rem",
-              color: palette.text,
-            }}
-          >
-            <span
-              style={{
-                width: "18px",
-                height: "18px",
-                border: `2px solid ${palette.text}`,
-                borderTopColor: "transparent",
-                borderRadius: "50%",
-                animation: "spin 1s linear infinite",
-                opacity: 0.6,
-              }}
-            />
-            読後を生成しています
-          </div>
-        </div>
-      )}
-
-      {showSavedToast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "6rem",
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: palette.bg2,
-            padding: "0.6rem 1rem",
-            borderRadius: "18px",
-            zIndex: 10002,
-          }}
-        >
-          ✓ 保存しました
-        </div>
-      )}
     </>,
     document.body
   );
