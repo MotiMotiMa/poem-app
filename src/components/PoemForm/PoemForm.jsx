@@ -14,11 +14,15 @@ import TitleSuggestions from "./TitleSuggestions";
 import EmotionSelect from "../EmotionSelect";
 import TagsInput from "./TagsInput";
 import PoemPDFButton from "./PoemPDFButton";
+import PoemActionBar from "./PoemActionBar";
+import TitleGenerateButton from "./TitleGenerateButton";
 
 import { savePoem, loadPoem } from "../../supabase/poemApi";
 import { emotionPalette } from "../../styles/emotionPalette";
 
 const DRAFT_KEY = "poem_draft_v1";
+
+
 
 export default function PoemForm({
   poemId,
@@ -306,37 +310,12 @@ export default function PoemForm({
               palette={palette}
             />
 
-            <button
-              type="button"
+            <TitleGenerateButton
               onClick={handleGenerateTitle}
-              disabled={isGeneratingTitle}
-              style={{
-                marginBottom: "0.8rem",
-                background: "none",
-                border: "none",
-                color: palette.text,
-                opacity: isGeneratingTitle ? 0.5 : 0.7,
-                fontSize: "0.85rem",
-                cursor: "pointer",
-              }}
-            >
-              {!isGeneratingTitle && "タイトルを生成する"}
-              {isGeneratingTitle && (
-                <span style={{ display: "flex", gap: "0.5rem" }}>
-                  <span
-                    style={{
-                      width: 14,
-                      height: 14,
-                      border: `2px solid ${palette.text}`,
-                      borderTopColor: "transparent",
-                      borderRadius: "50%",
-                      animation: "spin 0.9s linear infinite",
-                    }}
-                  />
-                  タイトルを考えています
-                </span>
-              )}
-            </button>
+              isGenerating={isGeneratingTitle}
+              hasError={titleGenError}
+              palette={palette}
+            />
 
             <TitleSuggestions
               titles={titleCandidates}
@@ -360,50 +339,24 @@ export default function PoemForm({
           </div>
         </div>
 
-        <div style={{ padding: "0.75rem", background: palette.bg2 }}>
-          <button
-            onClick={handleSave}
-            disabled={saving || !user}
-            style={{
-              width: "100%",
-              borderRadius: "14px",
-              background: palette.main,
-              color: "#fff",
-              padding: "0.7rem",
-              border: "none",
-              fontWeight: "bold",
-            }}
-          >
-            {saving ? "保存しています…" : "保存する"}
-          </button>
+      <PoemActionBar
+        onSave={handleSave}
+        onEvaluate={handleEvaluate}
+        saving={saving}
+        user={user}
+        palette={palette}
+        isEvaluating={isEvaluating}
+        poemForPdf={{
+          title,
+          poem,
+          emotion,
+          score: aiScore,
+          tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+        }}
+      />
 
-          <button
-            onClick={handleEvaluate}
-            style={{
-              width: "100%",
-              marginTop: "0.6rem",
-              borderRadius: "14px",
-              background: "transparent",
-              border: `1px solid ${palette.border}`,
-              color: palette.text,
-              padding: "0.6rem",
-            }}
-          >
-            AI評価
-          </button>
+     </div>
 
-          <PoemPDFButton
-            poem={{
-              title,
-              poem,
-              emotion,
-              score: aiScore,
-              tags: tags.split(",").map(t => t.trim()).filter(Boolean),
-            }}
-          />
-
-        </div>
-      </div>
     </>,
     document.body
   );
