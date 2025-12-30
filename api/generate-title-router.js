@@ -15,37 +15,30 @@ export default async function handler(req, res) {
     process.env.DEFAULT_AI_PROVIDER ||
     "gemini";
 
-  let targetUrl;
-
-  switch (provider) {
-    case "gpt":
-      targetUrl = "/api/generate-title";
-      break;
-    case "gemini":
-    default:
-      targetUrl = "/api/generate-title-gem";
-      break;
-  }
+  let targetPath =
+    provider === "gpt"
+      ? "/api/generate-title"
+      : "/api/generate-title-gem";
 
   try {
-    const response = await fetch(
-      `${req.headers.origin}${targetUrl}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(req.body),
-      }
-    );
+    const protocol = req.headers["x-forwarded-proto"] || "http";
+    const host = req.headers["x-forwarded-host"] || req.headers.host;
+    const url = `${protocol}://${host}${targetPath}`;
+
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(req.body),
+    });
 
     const data = await response.json();
     return res.status(response.status).json(data);
 
   } catch (err) {
-    console.error("title router error:", err);
-    return res.status(500).json({
-      error: "AI router failed",
-    });
+    console.error("generate-title-router error:", err);
+    return res.status(500).json({ error: "AI router failed" });
   }
 }
