@@ -3,9 +3,11 @@
 // - 保存
 // - AI評価
 // - PDF生成
+// - AI Provider 切替
 // =======================================================
 
 import PoemPDFButton from "./PoemPDFButton";
+import AiToggle from "../AiToggle";
 
 export default function PoemActionBar({
   onSave,
@@ -25,8 +27,20 @@ export default function PoemActionBar({
           padding: "0.75rem",
           background: palette.bg2,
           borderRadius: "18px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.6rem",
         }}
       >
+        {/* AI Provider Toggle */}
+        <AiToggle
+          value={aiProvider}
+          onChange={setAiProvider}
+          disabled={saving || isEvaluating}
+          palette={palette}
+        />
+
+        {/* Save */}
         <button
           type="button"
           onClick={onSave}
@@ -40,76 +54,36 @@ export default function PoemActionBar({
             border: "none",
             fontWeight: "bold",
             cursor: saving ? "default" : "pointer",
+            opacity: saving ? 0.9 : 1,
           }}
         >
           {saving ? "保存しています…" : "保存する"}
         </button>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.4rem",
-            marginRight: "0.5rem",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setAiProvider("gpt")}
-            disabled={aiProvider === "gpt" || saving || isEvaluating}
-            style={{
-              padding: "0.35rem 0.6rem",
-              borderRadius: 10,
-              border: `1px solid ${palette.border}`,
-              background: aiProvider === "gpt" ? palette.main : "transparent",
-              color: aiProvider === "gpt" ? "#fff" : palette.text,
-              fontSize: "0.8rem",
-              cursor: aiProvider === "gpt" ? "default" : "pointer",
-            }}
-          >
-            GPT
-          </button>
 
-          <button
-            type="button"
-            onClick={() => setAiProvider("gemini")}
-            disabled={aiProvider === "gemini" || saving || isEvaluating}
-            style={{
-              padding: "0.35rem 0.6rem",
-              borderRadius: 10,
-              border: `1px solid ${palette.border}`,
-              background: aiProvider === "gemini" ? palette.main : "transparent",
-              color: aiProvider === "gemini" ? "#fff" : palette.text,
-              fontSize: "0.8rem",
-              cursor: aiProvider === "gemini" ? "default" : "pointer",
-            }}
-          >
-            Gemini
-          </button>
-        </div>
-
-
+        {/* Evaluate */}
         <button
           type="button"
           onClick={onEvaluate}
+          disabled={isEvaluating}
           style={{
             width: "100%",
-            marginTop: "0.6rem",
             borderRadius: "14px",
             background: "transparent",
             border: `1px solid ${palette.border}`,
             color: palette.text,
             padding: "0.6rem",
-            cursor: "pointer",
+            cursor: isEvaluating ? "default" : "pointer",
+            opacity: isEvaluating ? 0.6 : 1,
           }}
         >
           AI評価
         </button>
 
-        <div style={{ marginTop: "0.6rem" }}>
-          <PoemPDFButton poem={poemForPdf} palette={palette} />
-        </div>
+        {/* PDF */}
+        <PoemPDFButton poem={poemForPdf} palette={palette} />
       </div>
 
+      {/* Evaluating Overlay */}
       {isEvaluating && (
         <div
           style={{
