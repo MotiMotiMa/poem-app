@@ -3,8 +3,8 @@
 // Gemini / GPT 評価API 切替ルーター（安全版）
 // =======================================================
 
-import evaluateGem from "./evaluate-poem-gem";
-import evaluateGpt from "./evaluate-poem";
+import evaluateGem from "./evaluate-poem-gem.js";
+import evaluateGpt from "./evaluate-poem.js";
 
 export const config = { runtime: "nodejs" };
 
