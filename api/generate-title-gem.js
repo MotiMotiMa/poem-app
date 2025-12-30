@@ -13,8 +13,8 @@ export default async function handler(req, res) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      // 修正ポイント: 1.5-flash で 404 が出る環境のため、最も安定した gemini-pro を指定
-      model: "models/gemini-pro", 
+      
+      model: "gemini-1.5-flash",
       generationConfig: {
         temperature: 0.9,
         // 修正ポイント: 旧モデルの場合 responseMimeType が未対応の場合があるため、一旦削除

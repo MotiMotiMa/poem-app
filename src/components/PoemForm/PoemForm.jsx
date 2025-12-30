@@ -63,7 +63,7 @@ export default function PoemForm({
   const [titleCandidates, setTitleCandidates] = useState([]);
   const [titleGenError, setTitleGenError] = useState(false);
 
-  const AI_PROVIDER = "gpt"; // or user selectable
+  const AI_PROVIDER = "gemini"; // or user selectable
 
   // =====================================================
   // theme / palette

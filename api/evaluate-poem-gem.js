@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "models/gemini-pro", // 修正
+      model: "gemini-1.5-pro", // 修正
       generationConfig: {
         temperature: 0.9,
       },
