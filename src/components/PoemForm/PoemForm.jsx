@@ -1,9 +1,9 @@
 // =======================================================
-// PoemForm.jsx（完成版：UX最適化＋広画面対応＋AI評価保存対応）
-// - タイトル生成UI完全復帰
-// - 候補1件時は自動確定
-// - 候補複数時のみ選択UI表示
-// - Gemini / GPT 切替トグル（localStorage保持）
+// PoemForm.jsx
+// - UX最適化
+// - タイトル生成UI
+// - AI評価保存対応
+// - AI Provider state 管理（UIは ActionBar）
 // =======================================================
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -21,7 +21,7 @@ import { savePoem, loadPoem } from "../../supabase/poemApi";
 import { emotionPalette } from "../../styles/emotionPalette";
 
 const DRAFT_KEY = "poem_draft_v1";
-const AI_PROVIDER_KEY = "poem_ai_provider_v1"; // 追加
+const AI_PROVIDER_KEY = "poem_ai_provider_v1";
 
 export default function PoemForm({ poemId, theme, user, setLoading, onSaved }) {
   // =====================================================
@@ -59,12 +59,12 @@ export default function PoemForm({ poemId, theme, user, setLoading, onSaved }) {
   const [titleGenError, setTitleGenError] = useState(false);
 
   // =====================================================
-  // AI Provider（トグル + 永続化）
+  // AI Provider（state + 永続化）
   // =====================================================
   const [aiProvider, setAiProvider] = useState(() => {
     try {
       const v = localStorage.getItem(AI_PROVIDER_KEY);
-      return v === "gpt" || v === "gemini" ? v : "gpt"; // デフォルトはgpt推奨
+      return v === "gpt" || v === "gemini" ? v : "gpt";
     } catch {
       return "gpt";
     }
@@ -111,11 +111,14 @@ export default function PoemForm({ poemId, theme, user, setLoading, onSaved }) {
 
   useEffect(() => {
     if (poemId) return;
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, poem, emotion, tags }));
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ title, poem, emotion, tags })
+    );
   }, [title, poem, emotion, tags, poemId]);
 
   // =====================================================
-  // タイトル生成（ルーター経由）
+  // タイトル生成
   // =====================================================
   const handleGenerateTitle = async () => {
     if (!poem.trim()) return;
@@ -125,7 +128,7 @@ export default function PoemForm({ poemId, theme, user, setLoading, onSaved }) {
     setTitleCandidates([]);
 
     try {
-      const res = await fetch(`${window.location.origin}/api/generate-title-router`, {
+      const res = await fetch("/api/generate-title-router", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -167,28 +170,27 @@ export default function PoemForm({ poemId, theme, user, setLoading, onSaved }) {
   // 編集データ読み込み
   // =====================================================
   useEffect(() => {
-    async function fetchPoem() {
-      if (!poemId) return;
+    if (!poemId) return;
+
+    (async () => {
       setLoading(true);
       try {
         const p = await loadPoem(poemId);
-        if (p) {
-          setTitle(p.title || "");
-          setPoem(p.poem || "");
-          setEmotion(p.emotion || "light");
-          setTags((p.tags || []).join(","));
-          setAiScore(p.score ?? 0);
-          setAiComment(p.comment ?? "");
-        }
+        if (!p) return;
+        setTitle(p.title || "");
+        setPoem(p.poem || "");
+        setEmotion(p.emotion || "light");
+        setTags((p.tags || []).join(","));
+        setAiScore(p.score ?? 0);
+        setAiComment(p.comment ?? "");
       } finally {
         setLoading(false);
       }
-    }
-    fetchPoem();
+    })();
   }, [poemId, setLoading]);
 
   // =====================================================
-  // 保存処理
+  // 保存
   // =====================================================
   const handleSave = async () => {
     if (!user) {
@@ -210,7 +212,7 @@ export default function PoemForm({ poemId, theme, user, setLoading, onSaved }) {
         emotion,
         score: aiScore,
         comment: aiComment,
-        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
       });
 
       if (!ok) {
@@ -226,14 +228,14 @@ export default function PoemForm({ poemId, theme, user, setLoading, onSaved }) {
   };
 
   // =====================================================
-  // AI評価（ルーター経由）
+  // AI評価
   // =====================================================
   const handleEvaluate = async () => {
     if (!poem.trim()) return;
     setIsEvaluating(true);
 
     try {
-      const res = await fetch(`${window.location.origin}/api/evaluate-poem-router`, {
+      const res = await fetch("/api/evaluate-poem-router", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -253,66 +255,6 @@ export default function PoemForm({ poemId, theme, user, setLoading, onSaved }) {
       setIsEvaluating(false);
     }
   };
-
-  // =====================================================
-  // 小さなトグルUI
-  // =====================================================
-  const AiToggle = () => (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "0.5rem",
-        marginTop: "0.8rem",
-        padding: "0.6rem 0.7rem",
-        border: `1px solid ${palette.border}`,
-        borderRadius: 12,
-        background: palette.bg2,
-      }}
-    >
-      <div style={{ fontSize: "0.85rem", opacity: 0.85 }}>
-        AI: <b>{aiProvider === "gpt" ? "GPT" : "Gemini"}</b>
-      </div>
-
-      <div style={{ display: "flex", gap: "0.35rem", marginLeft: "auto" }}>
-        <button
-          type="button"
-          onClick={() => setAiProvider("gpt")}
-          disabled={aiProvider === "gpt" || isGeneratingTitle || isEvaluating}
-          style={{
-            padding: "0.35rem 0.6rem",
-            borderRadius: 10,
-            border: `1px solid ${palette.border}`,
-            background: aiProvider === "gpt" ? palette.main : "transparent",
-            color: aiProvider === "gpt" ? "#fff" : palette.text,
-            opacity: aiProvider === "gpt" ? 1 : 0.9,
-            cursor: aiProvider === "gpt" ? "default" : "pointer",
-            fontSize: "0.85rem",
-          }}
-        >
-          GPT
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setAiProvider("gemini")}
-          disabled={aiProvider === "gemini" || isGeneratingTitle || isEvaluating}
-          style={{
-            padding: "0.35rem 0.6rem",
-            borderRadius: 10,
-            border: `1px solid ${palette.border}`,
-            background: aiProvider === "gemini" ? palette.main : "transparent",
-            color: aiProvider === "gemini" ? "#fff" : palette.text,
-            opacity: aiProvider === "gemini" ? 1 : 0.9,
-            cursor: aiProvider === "gemini" ? "default" : "pointer",
-            fontSize: "0.85rem",
-          }}
-        >
-          Gemini
-        </button>
-      </div>
-    </div>
-  );
 
   // =====================================================
   // JSX
@@ -368,8 +310,6 @@ export default function PoemForm({ poemId, theme, user, setLoading, onSaved }) {
             onClose={() => setTitleCandidates([])}
           />
 
-          <AiToggle />
-
           <EmotionSelect value={emotion} onChange={setEmotion} palette={palette} />
           <TagsInput value={tags} onChange={setTags} palette={palette} />
 
@@ -393,7 +333,7 @@ export default function PoemForm({ poemId, theme, user, setLoading, onSaved }) {
           poem,
           emotion,
           score: aiScore,
-          tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+          tags: tags.split(",").map(t => t.trim()).filter(Boolean),
         }}
         aiProvider={aiProvider}
         setAiProvider={setAiProvider}
