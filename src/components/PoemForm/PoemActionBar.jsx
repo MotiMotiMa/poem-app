@@ -13,8 +13,10 @@ export default function PoemActionBar({
   saving,
   user,
   palette,
+  isEvaluating,
   poemForPdf,
-  isEvaluating, // ★ 追加
+  aiProvider,
+  setAiProvider,
 }) {
   return (
     <>
@@ -42,6 +44,49 @@ export default function PoemActionBar({
         >
           {saving ? "保存しています…" : "保存する"}
         </button>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            marginRight: "0.5rem",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setAiProvider("gpt")}
+            disabled={aiProvider === "gpt" || saving || isEvaluating}
+            style={{
+              padding: "0.35rem 0.6rem",
+              borderRadius: 10,
+              border: `1px solid ${palette.border}`,
+              background: aiProvider === "gpt" ? palette.main : "transparent",
+              color: aiProvider === "gpt" ? "#fff" : palette.text,
+              fontSize: "0.8rem",
+              cursor: aiProvider === "gpt" ? "default" : "pointer",
+            }}
+          >
+            GPT
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAiProvider("gemini")}
+            disabled={aiProvider === "gemini" || saving || isEvaluating}
+            style={{
+              padding: "0.35rem 0.6rem",
+              borderRadius: 10,
+              border: `1px solid ${palette.border}`,
+              background: aiProvider === "gemini" ? palette.main : "transparent",
+              color: aiProvider === "gemini" ? "#fff" : palette.text,
+              fontSize: "0.8rem",
+              cursor: aiProvider === "gemini" ? "default" : "pointer",
+            }}
+          >
+            Gemini
+          </button>
+        </div>
+
 
         <button
           type="button"
