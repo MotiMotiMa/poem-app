@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       
-      model:"gemini-1.5-flash",
+      model: "gemini-1.5-flash-latest",
       generationConfig: {
         temperature: 0.9,
         // 修正ポイント: 旧モデルの場合 responseMimeType が未対応の場合があるため、一旦削除
@@ -25,7 +25,9 @@ export default async function handler(req, res) {
         { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
         { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
       ],
-    });
+    },
+      { apiVersion: "v1" } 
+  );
 
     // プロンプトに JSON で返すよう強く指示する（responseMimeType を使わない代わり）
     const prompt = `以下の詩に対して、必ず有効なJSON形式で "titles" キーに3つの案を格納して返してください。余計な解説文は一切不要です。出力はJSONのみにしてください。\n\n【詩】\n${poem}`;
