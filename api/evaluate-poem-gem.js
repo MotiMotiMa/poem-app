@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-       model: "gemini-1.5-flash-latest", // 修正
+       model:  "gemini-2.5-flash", // 修正
       generationConfig: {
         temperature: 0.9,
       },
@@ -26,7 +26,6 @@ export default async function handler(req, res) {
         { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
       ],
     },
-      { apiVersion: "v1" } 
   );
 
     const prompt = `詩を評価し、必ず以下のJSON形式のみで返してください。解説やMarkdownの装飾は一切不要です。\n\n【出力JSON仕様】\n{\n  "score": 0〜100の整数,\n  "emotion": "warm | cool | dark | light | love | sorrow | growth",\n  "comment": "日本語コメント",\n  "titles": ["案1", "案2", "案3"],\n  "tags": ["タグ1", "タグ2"]\n}\n\n【詩】\n${poem}`;

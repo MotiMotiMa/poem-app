@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       
-      model: "gemini-1.5-flash-latest",
+      model:  "gemini-2.5-flash",
       generationConfig: {
         temperature: 0.9,
         // 修正ポイント: 旧モデルの場合 responseMimeType が未対応の場合があるため、一旦削除
@@ -26,7 +26,6 @@ export default async function handler(req, res) {
         { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
       ],
     },
-      { apiVersion: "v1" } 
   );
 
     // プロンプトに JSON で返すよう強く指示する（responseMimeType を使わない代わり）
