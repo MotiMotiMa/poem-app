@@ -13,11 +13,11 @@ export default async function handler(req, res) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash", // "models/" を付けないのが正解
-      systemInstruction: "あなたは日本語詩の編集者です。題名は余韻だけを残します。",
+      // 修正ポイント: 1.5-flash で 404 が出る環境のため、最も安定した gemini-pro を指定
+      model: "models/gemini-pro", 
       generationConfig: {
         temperature: 0.9,
-        responseMimeType: "application/json",
+        // 修正ポイント: 旧モデルの場合 responseMimeType が未対応の場合があるため、一旦削除
       },
       safetySettings: [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -27,7 +27,9 @@ export default async function handler(req, res) {
       ],
     });
 
-    const prompt = `以下の詩に対して、JSON形式で "titles" キーに3つの案を格納して返してください。\n\n【詩】\n${poem}`;
+    // プロンプトに JSON で返すよう強く指示する（responseMimeType を使わない代わり）
+    const prompt = `以下の詩に対して、必ず有効なJSON形式で "titles" キーに3つの案を格納して返してください。余計な解説文は一切不要です。出力はJSONのみにしてください。\n\n【詩】\n${poem}`;
+    
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const raw = response.text();

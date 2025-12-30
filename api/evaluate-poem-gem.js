@@ -15,11 +15,9 @@ export default async function handler(req, res) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash", 
-      systemInstruction: "あなたは日本語の現代詩を扱う編集者です。説明せず、余韻だけを言葉に残します。",
+      model: "models/gemini-pro", // 修正
       generationConfig: {
         temperature: 0.9,
-        responseMimeType: "application/json",
       },
       safetySettings: [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -29,7 +27,7 @@ export default async function handler(req, res) {
       ],
     });
 
-    const prompt = `詩を評価し、指定のJSON形式で返してください。\n\n【出力JSON仕様】\n{\n  "score": 0〜100の整数,\n  "emotion": "warm | cool | dark | light | love | sorrow | growth",\n  "comment": "日本語コメント",\n  "titles": ["案1", "案2", "案3"],\n  "tags": ["タグ1", "タグ2"]\n}\n\n【詩】\n${poem}`;
+    const prompt = `詩を評価し、必ず以下のJSON形式のみで返してください。解説やMarkdownの装飾は一切不要です。\n\n【出力JSON仕様】\n{\n  "score": 0〜100の整数,\n  "emotion": "warm | cool | dark | light | love | sorrow | growth",\n  "comment": "日本語コメント",\n  "titles": ["案1", "案2", "案3"],\n  "tags": ["タグ1", "タグ2"]\n}\n\n【詩】\n${poem}`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -40,7 +38,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ score: null, emotion: "light", comment: "言葉が深く、沈黙を選びました。", titles: [], tags: [] });
     }
 
-    // フィルタリングと整形
     const score = Number.isInteger(parsed.score) ? parsed.score : null;
     const emotion = EMOTIONS.includes(parsed.emotion) ? parsed.emotion : "light";
     const comment = typeof parsed.comment === "string" ? parsed.comment.trim() : "";
