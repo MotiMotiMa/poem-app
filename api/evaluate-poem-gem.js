@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const model = genAI.getGenerativeModel({
-      model: "models/gemini-pro",
+       model: "gemini-1.5-flash", // 高速なflashを推奨
       systemInstruction: `
 あなたは日本語の現代詩を扱う編集者です。
 あなたは説明しません。
@@ -41,7 +41,15 @@ export default async function handler(req, res) {
 `.trim(),
       generationConfig: {
         temperature: 0.9,
+        responseMimeType: "application/json", // これを追加
       },
+      // 詩の表現がブロックされないようセーフティ設定を緩和
+      safetySettings: [
+        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+      ],
     });
 
     const prompt = `
@@ -86,16 +94,22 @@ ${poem}
     const response = await result.response;
     const raw = response.text();
 
-    const parsed = safeParseJSON(raw);
-    if (!parsed) {
-      return res.status(200).json({
-        score: null,
-        emotion: "light",
-        comment: "",
-        titles: [],
-        tags: [],
-      });
+    let parsed; // ここで宣言
+    try {
+      // const を消して、外側の parsed に代入する
+      parsed = safeParseJSON(raw); 
+      if (!parsed) {
+        throw new Error("Invalid JSON from Gemini");
+      }
+    } catch (e) {
+      console.error("JSON parse failed:", raw);
+      throw new Error("Invalid JSON from AI");
     }
+
+    return res.status(200).json({
+      // parsed が undefined ではないことが保証される
+      titles: Array.isArray(parsed.titles) ? parsed.titles : [],
+    });
 
     // ----------------------
     // フィルタリング
