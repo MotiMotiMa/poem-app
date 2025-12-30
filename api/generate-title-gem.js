@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     
     // タイトル生成は軽量な gemini-1.5-flash で十分高速・高品質に動作します
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "models/gemini-1.5-pro",
       systemInstruction: "あなたは日本語詩の編集者です。題名は余韻だけを残します。",
       generationConfig: {
         responseMimeType: "application/json",
