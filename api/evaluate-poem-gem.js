@@ -3,7 +3,7 @@
 // Gemini API版：詩を総合評価する唯一のAIエンドポイント（安全第一版）
 // =======================================================
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { safeParseJSON } from "./utils/json";
+import { safeParseJSON } from "./utils/json.js";
 
 export const config = { runtime: "nodejs" };
 

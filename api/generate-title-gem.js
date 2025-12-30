@@ -3,7 +3,7 @@
 // Gemini API版：詩から「仮タイトル候補」を生成するAPI
 // =======================================================
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { safeParseJSON } from "./utils/json";
+import { safeParseJSON } from "./utils/json.js";
 
 export const config = { runtime: "nodejs" };
 
