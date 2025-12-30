@@ -63,6 +63,8 @@ export default function PoemForm({
   const [titleCandidates, setTitleCandidates] = useState([]);
   const [titleGenError, setTitleGenError] = useState(false);
 
+  const AI_PROVIDER = "gpt"; // or user selectable
+
   // =====================================================
   // theme / palette
   // =====================================================
@@ -119,7 +121,7 @@ export default function PoemForm({
         `${window.location.origin}/api/generate-title-router`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" ,  "x-ai-provider": process.env.REACT_APP_DEFAULT_AI_PROVIDER,},
+          headers: { "Content-Type": "application/json" , "x-ai-provider": AI_PROVIDER,},
           body: JSON.stringify({ poem }),
         }
       );
@@ -228,7 +230,7 @@ export default function PoemForm({
         {
           method: "POST",
            headers: { "Content-Type": "application/json" , 
-            "x-ai-provider": process.env.REACT_APP_DEFAULT_AI_PROVIDER,},
+            "x-ai-provider": AI_PROVIDER,},
           body: JSON.stringify({ poem }),
           
         }
