@@ -119,7 +119,7 @@ export default function PoemForm({
         `${window.location.origin}/api/generate-title-router`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" , "x-ai-provider": "gpt",},
+          headers: { "Content-Type": "application/json" ,  "x-ai-provider": process.env.REACT_APP_DEFAULT_AI_PROVIDER,},
           body: JSON.stringify({ poem }),
         }
       );
@@ -227,7 +227,8 @@ export default function PoemForm({
         `${window.location.origin}/api/evaluate-poem-router`,
         {
           method: "POST",
-           headers: { "Content-Type": "application/json" , "x-ai-provider": "gpt",},
+           headers: { "Content-Type": "application/json" , 
+            "x-ai-provider": process.env.REACT_APP_DEFAULT_AI_PROVIDER,},
           body: JSON.stringify({ poem }),
           
         }
