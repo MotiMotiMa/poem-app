@@ -3,6 +3,7 @@
 // - タイトル生成UI完全復帰
 // - 候補1件時は自動確定
 // - 候補複数時のみ選択UI表示
+// - Gemini / GPT 切替ルーター対応
 // =======================================================
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -13,7 +14,6 @@ import TitleInput from "./TitleInput";
 import TitleSuggestions from "./TitleSuggestions";
 import EmotionSelect from "../EmotionSelect";
 import TagsInput from "./TagsInput";
-import PoemPDFButton from "./PoemPDFButton";
 import PoemActionBar from "./PoemActionBar";
 import TitleGenerateButton from "./TitleGenerateButton";
 
@@ -21,8 +21,6 @@ import { savePoem, loadPoem } from "../../supabase/poemApi";
 import { emotionPalette } from "../../styles/emotionPalette";
 
 const DRAFT_KEY = "poem_draft_v1";
-
-
 
 export default function PoemForm({
   poemId,
@@ -61,8 +59,6 @@ export default function PoemForm({
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [showSavedToast, setShowSavedToast] = useState(false);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const [titleCandidates, setTitleCandidates] = useState([]);
   const [titleGenError, setTitleGenError] = useState(false);
@@ -109,18 +105,18 @@ export default function PoemForm({
   }, [title, poem, emotion, tags, poemId]);
 
   // =====================================================
-  // タイトル生成
+  // タイトル生成（ルーター経由）
   // =====================================================
   const handleGenerateTitle = async () => {
     if (!poem.trim()) return;
-    const API_BASE = process.env.REACT_APP_API_BASE_URL || "";
+
     setIsGeneratingTitle(true);
     setTitleGenError(false);
     setTitleCandidates([]);
 
     try {
       const res = await fetch(
-        `${window.location.origin}/api/generate-title`,
+        `${window.location.origin}/api/generate-title-router`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -133,7 +129,6 @@ export default function PoemForm({
       const data = await res.json();
 
       if (Array.isArray(data.titles)) {
-        // ★ 候補が1件 → 自動確定
         if (data.titles.length === 1) {
           const only = data.titles[0];
           setTimeout(() => {
@@ -141,9 +136,7 @@ export default function PoemForm({
             setIsTitleSuggested(true);
             setTitleCandidates([]);
           }, 220);
-        } 
-        // ★ 複数 → 選択UI表示
-        else if (data.titles.length > 1) {
+        } else if (data.titles.length > 1) {
           setTitleCandidates(data.titles);
         }
       }
@@ -216,7 +209,6 @@ export default function PoemForm({
       }
 
       localStorage.removeItem(DRAFT_KEY);
-      setShowSavedToast(true);
       setTimeout(() => onSaved?.(), 900);
     } finally {
       setSaving(false);
@@ -224,7 +216,7 @@ export default function PoemForm({
   };
 
   // =====================================================
-  // AI評価
+  // AI評価（ルーター経由）
   // =====================================================
   const handleEvaluate = async () => {
     if (!poem.trim()) return;
@@ -232,7 +224,7 @@ export default function PoemForm({
 
     try {
       const res = await fetch(
-        `${window.location.origin}/api/evaluate-poem`,
+        `${window.location.origin}/api/evaluate-poem-router`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -251,93 +243,69 @@ export default function PoemForm({
   };
 
   // =====================================================
-  // キーボード表示検知
-  // =====================================================
-  useEffect(() => {
-    const baseHeight = window.innerHeight;
-    const onResize = () => {
-      setKeyboardOpen(baseHeight - window.innerHeight > 120);
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  // =====================================================
   // JSX
   // =====================================================
   return createPortal(
-    <>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes shake {
-          0% { transform: translateX(0); }
-          25% { transform: translateX(-4px); }
-          50% { transform: translateX(4px); }
-          75% { transform: translateX(-3px); }
-          100% { transform: translateX(0); }
-        }
-      `}</style>
+    <div
+      style={{
+        position: isWide ? "relative" : "fixed",
+        inset: isWide ? "auto" : 0,
+        height: isWide ? "auto" : "100dvh",
+        background: palette.bg,
+        color: palette.text,
+        display: "flex",
+        flexDirection: "column",
+        zIndex: 9999,
+      }}
+    >
+      <div style={{ flex: 1, padding: "1rem", overflowY: "auto" }}>
+        <PoemTextarea
+          value={poem}
+          onChange={setPoem}
+          palette={palette}
+          autoFocus
+          poetMode
+        />
 
-      <div
-        style={{
-          position: isWide ? "relative" : "fixed",
-          inset: isWide ? "auto" : 0,
-          height: isWide ? "auto" : "100dvh",
-          background: palette.bg,
-          color: palette.text,
-          display: "flex",
-          flexDirection: "column",
-          zIndex: 9999,
-        }}
-      >
-        <div style={{ flex: 1, padding: "1rem", overflowY: "auto" }}>
-          <PoemTextarea
-            value={poem}
-            onChange={setPoem}
+        <div style={{ marginTop: "1.5rem" }}>
+          <TitleInput
+            value={title}
+            isSuggested={isTitleSuggested}
+            onChange={(v) => {
+              setTitle(v);
+              setIsTitleSuggested(false);
+            }}
             palette={palette}
-            autoFocus
-            poetMode
           />
 
-          <div style={{ marginTop: "1.5rem" }}>
-            <TitleInput
-              value={title}
-              isSuggested={isTitleSuggested}
-              onChange={(v) => {
-                setTitle(v);
-                setIsTitleSuggested(false);
-              }}
-              palette={palette}
-            />
+          <TitleGenerateButton
+            onClick={handleGenerateTitle}
+            isGenerating={isGeneratingTitle}
+            hasError={titleGenError}
+            palette={palette}
+          />
 
-            <TitleGenerateButton
-              onClick={handleGenerateTitle}
-              isGenerating={isGeneratingTitle}
-              hasError={titleGenError}
-              palette={palette}
-            />
+          <TitleSuggestions
+            titles={titleCandidates}
+            palette={palette}
+            onSelect={(t) => {
+              setTitle(t);
+              setIsTitleSuggested(true);
+              setTitleCandidates([]);
+            }}
+            onClose={() => setTitleCandidates([])}
+          />
 
-            <TitleSuggestions
-              titles={titleCandidates}
-              palette={palette}
-              onSelect={(t) => {
-                setTitle(t);
-                setIsTitleSuggested(true);
-                setTitleCandidates([]);
-              }}
-              onClose={() => setTitleCandidates([])}
-            />
+          <EmotionSelect value={emotion} onChange={setEmotion} palette={palette} />
+          <TagsInput value={tags} onChange={setTags} palette={palette} />
 
-            <EmotionSelect value={emotion} onChange={setEmotion} palette={palette} />
-            <TagsInput value={tags} onChange={setTags} palette={palette} />
-
-            {saveError && (
-              <div style={{ color: "#c44545", fontSize: "0.85rem" }}>
-                {saveError}
-              </div>
-            )}
-          </div>
+          {saveError && (
+            <div style={{ color: "#c44545", fontSize: "0.85rem" }}>
+              {saveError}
+            </div>
+          )}
         </div>
+      </div>
 
       <PoemActionBar
         onSave={handleSave}
@@ -354,10 +322,7 @@ export default function PoemForm({
           tags: tags.split(",").map(t => t.trim()).filter(Boolean),
         }}
       />
-
-     </div>
-
-    </>,
+    </div>,
     document.body
   );
 }
