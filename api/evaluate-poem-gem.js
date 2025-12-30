@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const model = genAI.getGenerativeModel({
-      model: "models/gemini-1.5-pro",
+      model: "models/gemini-pro",
       systemInstruction: `
 あなたは日本語の現代詩を扱う編集者です。
 あなたは説明しません。
