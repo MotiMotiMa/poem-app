@@ -40,7 +40,6 @@ export default async function handler(req, res) {
 余韻だけを言葉に残します。
 `.trim(),
       generationConfig: {
-        responseMimeType: "application/json",
         temperature: 0.9,
       },
     });
@@ -89,7 +88,13 @@ ${poem}
 
     const parsed = safeParseJSON(raw);
     if (!parsed) {
-      throw new Error("Invalid JSON from Gemini");
+      return res.status(200).json({
+        score: null,
+        emotion: "light",
+        comment: "",
+        titles: [],
+        tags: [],
+      });
     }
 
     // ----------------------

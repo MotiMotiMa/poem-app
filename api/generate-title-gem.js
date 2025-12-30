@@ -31,7 +31,6 @@ export default async function handler(req, res) {
       model: "models/gemini-1.5-pro",
       systemInstruction: "あなたは日本語詩の編集者です。題名は余韻だけを残します。",
       generationConfig: {
-        responseMimeType: "application/json",
         temperature: 0.9,
       },
     });
